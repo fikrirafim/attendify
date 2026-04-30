@@ -1,6 +1,8 @@
+// main.dart
 import 'package:flutter/material.dart';
 import 'absen_page.dart';
 import 'profile_page.dart';
+import 'home_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Attendify',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
       home: const MainNavigation(),
@@ -35,7 +37,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   // Daftar halaman yang dipanggil (sesuai urutan dari kiri ke kanan)
   final List<Widget> _pages = [
-    const Center(child: Text('Halaman Home', style: TextStyle(fontSize: 20))), // Udah dirapihin
+    const HomePage(),  // Updated to use the modern HomePage
     const AbsenPage(),
     const ProfilePage(),
   ];
