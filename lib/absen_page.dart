@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'result_page.dart';
 
 class AbsenPage extends StatelessWidget {
   const AbsenPage({super.key});
@@ -106,7 +107,9 @@ class AbsenPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ResultPage()));
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       padding: const EdgeInsets.symmetric(vertical: 18),
@@ -120,7 +123,9 @@ class AbsenPage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ResultPage()));
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 18),
