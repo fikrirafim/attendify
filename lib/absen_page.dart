@@ -1,8 +1,106 @@
 import 'package:flutter/material.dart';
-import 'result_page.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:camera/camera.dart';
 
-class AbsenPage extends StatelessWidget {
+class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
+
+  @override
+  State<AbsenPage> createState() => _AbsenPageState();
+}
+
+class _AbsenPageState extends State<AbsenPage> {
+  // Variabel Lokasi
+  String _lokasiSaatIni = 'Mencari lokasi...';
+  bool _isLoadingLokasi = true;
+
+  // Variabel Kamera
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dapatkanLokasi();
+    _initKamera();
+  }
+
+  @override
+  void dispose() {
+    // Matiin kamera kalau pindah halaman biar gak berat
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  // --- LOGIC KAMERA ---
+  Future<void> _initKamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+
+      // Cari kamera depan, kalau gak ada pakai kamera pertama yang ada
+      final frontCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      _cameraController = CameraController(
+        frontCamera,
+        ResolutionPreset.medium,
+        enableAudio: false, // Ga butuh suara buat absen
+      );
+
+      await _cameraController!.initialize();
+      if (!mounted) return;
+
+      setState(() {
+        _isCameraInitialized = true;
+      });
+    } catch (e) {
+      debugPrint("Error inisialisasi kamera: $e");
+    }
+  }
+
+  // --- LOGIC LOKASI (GPS) ---
+  Future<void> _dapatkanLokasi() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() {
+        _lokasiSaatIni = 'GPS belum dinyalakan.';
+        _isLoadingLokasi = false;
+      });
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() {
+          _lokasiSaatIni = 'Izin lokasi ditolak.';
+          _isLoadingLokasi = false;
+        });
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      setState(() {
+        _lokasiSaatIni = 'Izin lokasi diblokir permanen.';
+        _isLoadingLokasi = false;
+      });
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+    setState(() {
+      _lokasiSaatIni = 'Lat: ${position.latitude}\nLong: ${position.longitude}';
+      _isLoadingLokasi = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +117,7 @@ class AbsenPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header Waktu (Modern Card)
+            // Header Waktu
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -43,7 +141,7 @@ class AbsenPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Status Lokasi (Soft UI)
+            // Status Lokasi
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
@@ -58,64 +156,65 @@ class AbsenPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
-                    child: const Icon(Icons.location_on, color: Colors.green),
+                    child: _isLoadingLokasi 
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.location_on, color: Colors.green),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Status Lokasi', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        Text('Dalam Radius Kantor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const Text('Status Lokasi', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(_lokasiSaatIni, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.check_circle, color: Colors.green),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Preview Kamera (Sleek Container)
+            // Kamera Preview
             Container(
-              height: 250,
+              height: 350, // Ditinggiin dikit biar enak liat muka
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.black,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200, width: 2),
                 boxShadow: [
-                  BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5)),
+                  BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
                 ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: Colors.blue[50], shape: BoxShape.circle),
-                    child: const Icon(Icons.face_retouching_natural, size: 50, color: Colors.blueAccent),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Arahkan wajah ke kamera\nuntuk validasi', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-                ],
+              // ClipRRect biar sudut kameranya ikut melengkung ngikutin container
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: _isCameraInitialized
+                    ? CameraPreview(_cameraController!)
+                    : const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: Colors.white),
+                            SizedBox(height: 12),
+                            Text('Menyiapkan Kamera...', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 30),
 
-            // Tombol Action (Pill Shape)
+            // Tombol Action
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ResultPage()));
-                    },
+                    onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 5,
-                      shadowColor: Colors.blueAccent.withOpacity(0.5),
                     ),
                     child: const Text('CHECK IN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
@@ -123,9 +222,7 @@ class AbsenPage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ResultPage()));
-                    },
+                    onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 18),

@@ -1,4 +1,3 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'absen_page.dart';
 import 'profile_page.dart';
@@ -66,8 +65,8 @@ class _MainNavigationState extends State<MainNavigation> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.fingerprint),
-            activeIcon: Icon(Icons.fingerprint),
+            icon: Icon(Icons.fact_check_outlined), // Icon papan absen
+            activeIcon: Icon(Icons.fact_check),    
             label: 'Absen',
           ),
           BottomNavigationBarItem(
