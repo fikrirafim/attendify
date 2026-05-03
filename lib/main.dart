@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
+import 'firebase_options.dart'; // Import file generate Firebase lu tadi
 import 'absen_page.dart';
 import 'profile_page.dart';
 import 'home_page.dart';
+import 'dart:js_interop';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  print("Firebase apps: ${Firebase.apps.length}");
+
   runApp(const MyApp());
 }
 

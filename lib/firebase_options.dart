@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'attendtify-6c251.firebasestorage.app',
     measurementId: 'G-XJC0V4NFC6',
   );
+
 }

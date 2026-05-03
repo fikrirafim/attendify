@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -10,13 +11,21 @@ class AbsenPage extends StatefulWidget {
 }
 
 class _AbsenPageState extends State<AbsenPage> {
-  // Variabel Lokasi
+  // --- KONFIGURASI TITIK ABSEN ---
+  final double _targetLat = -6.938396;
+  final double _targetLng = 107.658411;
+  final double _radiusMax = 50.0;
+
+  // Variabel Lokasi & Kamera
   String _lokasiSaatIni = 'Mencari lokasi...';
   bool _isLoadingLokasi = true;
-
-  // Variabel Kamera
+  bool _dalamRadius = false;
+  double _jarakMeter = 0.0;
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
+
+  // --- TAMBAHAN: CONTROLLER NRP & DATABASE LOKAL ---
+  final TextEditingController _nrpController = TextEditingController();
 
   @override
   void initState() {
@@ -27,79 +36,121 @@ class _AbsenPageState extends State<AbsenPage> {
 
   @override
   void dispose() {
-    // Matiin kamera kalau pindah halaman biar gak berat
     _cameraController?.dispose();
+    _nrpController.dispose(); // Jangan lupa dibuang biar gak bocor memori
     super.dispose();
   }
 
-  // --- LOGIC KAMERA ---
   Future<void> _initKamera() async {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
-
-      // Cari kamera depan, kalau gak ada pakai kamera pertama yang ada
       final frontCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
-
-      _cameraController = CameraController(
-        frontCamera,
-        ResolutionPreset.medium,
-        enableAudio: false, // Ga butuh suara buat absen
-      );
-
+      _cameraController = CameraController(frontCamera, ResolutionPreset.medium, enableAudio: false);
       await _cameraController!.initialize();
       if (!mounted) return;
-
-      setState(() {
-        _isCameraInitialized = true;
-      });
+      setState(() => _isCameraInitialized = true);
     } catch (e) {
-      debugPrint("Error inisialisasi kamera: $e");
+      debugPrint("Kamera error: $e");
     }
   }
 
-  // --- LOGIC LOKASI (GPS) ---
   Future<void> _dapatkanLokasi() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      Position position = await Geolocator.getCurrentPosition();
+      double distanceInMeters = Geolocator.distanceBetween(_targetLat, _targetLng, position.latitude, position.longitude);
       setState(() {
-        _lokasiSaatIni = 'GPS belum dinyalakan.';
+        _jarakMeter = distanceInMeters;
+        _dalamRadius = distanceInMeters <= _radiusMax;
+        _lokasiSaatIni = 'Lat: ${position.latitude.toStringAsFixed(4)}\nLong: ${position.longitude.toStringAsFixed(4)}';
         _isLoadingLokasi = false;
       });
+    } catch (e) {
+      setState(() {
+        _lokasiSaatIni = 'Gagal akses GPS';
+        _isLoadingLokasi = false;
+      });
+    }
+  }
+
+Future<void> _prosesAbsen() async {
+    // 1. Validasi Input Kosong
+    String inputNrp = _nrpController.text.trim();
+    if (inputNrp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('NRP wajib diisi bro!'), backgroundColor: Colors.orange));
       return;
     }
 
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() {
-          _lokasiSaatIni = 'Izin lokasi ditolak.';
-          _isLoadingLokasi = false;
-        });
+    // 2. Validasi Jarak 
+    if (!_dalamRadius) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: Lu masih di luar radius kampus!'), backgroundColor: Colors.red));
+      return;
+    }
+
+    // Munculin Loading...
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+      // 3. CEK NRP KE BUKU INDUK FIREBASE (Cek ke collection 'nrp')
+      DocumentSnapshot docUser = await firestore.collection('nrp').doc(inputNrp).get();
+
+      // Kalau NRP gak ketemu di database Firebase...
+      if (!docUser.exists) {
+        if (!mounted) return;
+        Navigator.pop(context); // Tutup loading
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('NRP $inputNrp tidak ada di Database Firebase!'), backgroundColor: Colors.red));
         return;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _lokasiSaatIni = 'Izin lokasi diblokir permanen.';
-        _isLoadingLokasi = false;
+      // Kalau NRP ketemu, tarik nama aslinya dari database
+      String namaSiswa = docUser.get('nama');
+
+      // 4. SIMPAN DATA ABSENSI KE COLLECTION 'absensi'
+      String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
+
+      await firestore.collection('absensi').doc(uniqueId).set({
+        'nrp': inputNrp,
+        'nama': namaSiswa, // Otomatis dapet "kevin pratama"
+        'latitude': _targetLat, 
+        'longitude': _targetLng,
+        'waktu_absen': DateTime.now().toIso8601String(), 
+        'status': 'Hadir',
       });
-      return;
-    }
 
-    Position position = await Geolocator.getCurrentPosition();
-    setState(() {
-      _lokasiSaatIni = 'Lat: ${position.latitude}\nLong: ${position.longitude}';
-      _isLoadingLokasi = false;
-    });
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup loading
+      _nrpController.clear(); // Bersihin inputan biar kosong lagi
+
+      // Sukses!
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("MANTAP!"),
+          content: Text("Presensi masuk bro!\n\nNama: $namaSiswa\nNRP: $inputNrp"),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("TUTUP"))
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      debugPrint("ERROR: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error jaringan: $e'), backgroundColor: Colors.red));
+    }
   }
 
   @override
@@ -109,7 +160,7 @@ class _AbsenPageState extends State<AbsenPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Presensi', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: const Text('Presensi LPKIA', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -117,56 +168,40 @@ class _AbsenPageState extends State<AbsenPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header Waktu
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.blueAccent, Colors.lightBlue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5)),
-                ],
-              ),
-              child: const Column(
-                children: [
-                  Text('08:00 AM', style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white)),
-                  SizedBox(height: 4),
-                  Text('Senin, 12 April 2026', style: TextStyle(fontSize: 16, color: Colors.white70)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Status Lokasi
+            // Status Lokasi & Jarak
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
-                ],
+                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                border: Border.all(
+                  color: _isLoadingLokasi ? Colors.transparent : (_dalamRadius ? Colors.green.shade200 : Colors.red.shade200),
+                  width: 2,
+                )
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: _isLoadingLokasi ? Colors.blue[50] : (_dalamRadius ? Colors.green[50] : Colors.red[50]), 
+                      shape: BoxShape.circle
+                    ),
                     child: _isLoadingLokasi 
                         ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.location_on, color: Colors.green),
+                        : Icon(_dalamRadius ? Icons.check_circle : Icons.cancel, color: _dalamRadius ? Colors.green : Colors.red),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Status Lokasi', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        Text(_lokasiSaatIni, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const Text('Status Jangkauan', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        if (!_isLoadingLokasi)
+                          Text(_dalamRadius ? 'Di Area Kampus (${_jarakMeter.toStringAsFixed(0)}m)' : 'Di Luar Area (${_jarakMeter.toStringAsFixed(0)}m)', 
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _dalamRadius ? Colors.green[700] : Colors.red[700])
+                          ),
                       ],
                     ),
                   ),
@@ -177,64 +212,55 @@ class _AbsenPageState extends State<AbsenPage> {
 
             // Kamera Preview
             Container(
-              height: 350, // Ditinggiin dikit biar enak liat muka
+              height: 300,
               decoration: BoxDecoration(
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
-                ],
+                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
               ),
-              // ClipRRect biar sudut kameranya ikut melengkung ngikutin container
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: _isCameraInitialized
                     ? CameraPreview(_cameraController!)
-                    : const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: Colors.white),
-                            SizedBox(height: 12),
-                            Text('Menyiapkan Kamera...', style: TextStyle(color: Colors.white)),
-                          ],
-                        ),
-                      ),
+                    : const Center(child: CircularProgressIndicator(color: Colors.white)),
               ),
             ),
             const SizedBox(height: 30),
 
-            // Tombol Action
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 5,
-                    ),
-                    child: const Text('CHECK IN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
+            // INPUT NRP
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+              ),
+              child: TextField(
+                controller: _nrpController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Masukkan NRP',
+                  hintText: 'Contoh: 2304140028',
+                  prefixIcon: const Icon(Icons.badge_outlined, color: Colors.blueAccent),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                      side: BorderSide(color: Colors.red.shade300, width: 1.5),
-                    ),
-                    child: Text('CHECK OUT', style: TextStyle(color: Colors.red.shade400, fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-              ],
+              ),
             ),
+            const SizedBox(height: 20),
+
+            // Tombol Action
+            ElevatedButton(
+              onPressed: _isLoadingLokasi ? null : _prosesAbsen,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _dalamRadius ? Colors.blueAccent : Colors.grey[400],
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: _dalamRadius ? 5 : 0,
+              ),
+              child: const Text('KIRIM ABSENSI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
