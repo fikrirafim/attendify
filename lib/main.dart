@@ -1,10 +1,11 @@
+// main.dart (Updated with Login Page)
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
-import 'firebase_options.dart'; // Import file generate Firebase lu tadi
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'absen_page.dart';
 import 'profile_page.dart';
 import 'home_page.dart';
-import 'dart:js_interop';
+import 'login_page.dart'; // Import login page
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      home: const MainNavigation(),
+      home: const LoginPage(), // LoginPage sebagai halaman pertama
     );
   }
 }
