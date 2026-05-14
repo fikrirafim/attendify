@@ -160,7 +160,7 @@ Widget build(BuildContext context) {
                     ),
                   ],
                 ),
-                child: _buildCalendarGrid(),
+                child: _buildCalendarGrid(context),
               ),
               const SizedBox(height: 20),
 
@@ -264,120 +264,119 @@ Widget build(BuildContext context) {
     );
   }
 
-  Widget _buildCalendarGrid() {
+  Widget _buildCalendarGrid(BuildContext context) {
     final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final List<int> dates = List.generate(30, (i) => i + 1);
     final Set<int> presentDays = {1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30};
     final Set<int> lateDays = {7, 14};
     final Set<int> absentDays = {6, 13, 20, 21, 27, 28};
 
+    final mediaWidth = MediaQuery.of(context).size.width;
+    final availableWidth = mediaWidth - 16 * 2; // account for container padding
+    final crossAxisCount = 7;
+    final tileSize = (availableWidth / crossAxisCount).clamp(36.0, 64.0);
+    final rows = (dates.length / crossAxisCount).ceil();
+    final gridHeight = rows * (tileSize + 8);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Weekday headers
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 1.2,
-            ),
-            itemCount: 7,
-            itemBuilder: (context, index) {
-              return Center(
-                child: Text(
-                  days[index],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.blueAccent,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          // Dates grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 1,
-            ),
-            itemCount: 30,
-            itemBuilder: (context, index) {
-              final date = dates[index];
-              late Color? bgColor;
-              late Color textColor;
-              late IconData? statusIcon;
-
-              if (presentDays.contains(date)) {
-                bgColor = Colors.green[50];
-                textColor = Colors.green[800]!;
-                statusIcon = Icons.check_circle;
-              } else if (lateDays.contains(date)) {
-                bgColor = Colors.orange[50];
-                textColor = Colors.orange[800]!;
-                statusIcon = Icons.access_time;
-              } else if (absentDays.contains(date)) {
-                bgColor = Colors.red[50];
-                textColor = Colors.red[800]!;
-                statusIcon = Icons.close;
-              } else {
-                bgColor = Colors.grey[50];
-                textColor = Colors.grey[400]!;
-                statusIcon = null;
-              }
-
-              return Container(
-                margin: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: date == 12
-                      ? Border.all(color: Colors.blueAccent, width: 2)
-                      : null,
-                ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            date.toString(),
-                            style: TextStyle(
-                              fontWeight: date == 12 ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 16,
-                              color: textColor,
-                            ),
-                          ),
-                          if (statusIcon != null) ...[
-                            const SizedBox(height: 2),
-                            Icon(statusIcon, size: 12, color: textColor),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (date == 12)
-                      Positioned(
-                        top: 2,
-                        right: 2,
-                        child: Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
+          Row(
+            children: days
+                .map((d) => Expanded(
+                      child: Center(
+                        child: Text(
+                          d,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                             color: Colors.blueAccent,
-                            shape: BoxShape.circle,
                           ),
                         ),
                       ),
-                  ],
-                ),
-              );
-            },
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: gridHeight,
+            child: GridView.count(
+              padding: EdgeInsets.zero,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1,
+              children: dates.map((date) {
+                Color bgColor;
+                Color textColor;
+                IconData? statusIcon;
+
+                if (presentDays.contains(date)) {
+                  bgColor = Colors.green[50]!;
+                  textColor = Colors.green[800]!;
+                  statusIcon = Icons.check_circle;
+                } else if (lateDays.contains(date)) {
+                  bgColor = Colors.orange[50]!;
+                  textColor = Colors.orange[800]!;
+                  statusIcon = Icons.access_time;
+                } else if (absentDays.contains(date)) {
+                  bgColor = Colors.red[50]!;
+                  textColor = Colors.red[800]!;
+                  statusIcon = Icons.close;
+                } else {
+                  bgColor = Colors.grey[50]!;
+                  textColor = Colors.grey[400]!;
+                  statusIcon = null;
+                }
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: date == 12 ? Border.all(color: Colors.blueAccent, width: 2) : null,
+                  ),
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              date.toString(),
+                              style: TextStyle(
+                                fontWeight: date == 12 ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 16,
+                                color: textColor,
+                              ),
+                            ),
+                            if (statusIcon != null) ...[
+                              const SizedBox(height: 2),
+                              Icon(statusIcon, size: 12, color: textColor),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (date == 12)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Colors.blueAccent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
