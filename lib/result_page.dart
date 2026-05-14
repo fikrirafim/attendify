@@ -1,8 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'dart:io';
 
-class ResultPage extends StatelessWidget {
-  const ResultPage({super.key});
+class ResultPage extends StatefulWidget {
+  final String nrp;
+  final String nama;
+  final DateTime waktuAbsen;
+  final String lokasi;
+  final String koordinat;
+  final XFile? capturedImage;
 
+  const ResultPage({
+    super.key,
+    required this.nrp,
+    required this.nama,
+    required this.waktuAbsen,
+    required this.lokasi,
+    required this.koordinat,
+    this.capturedImage,
+  });
+
+  @override
+  State<ResultPage> createState() => _ResultPageState();
+}
+
+class _ResultPageState extends State<ResultPage> {
   Widget _buildDetailRow(String label, String value, IconData icon, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -77,7 +99,7 @@ class ResultPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('Absen Berhasil!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
                   const SizedBox(height: 8),
-                  const Text('Presensi Anda telah tercatat dengan sukses.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  Text('Presensi ${widget.nama} telah tercatat dengan sukses.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16)),
                 ],
               ),
             ),
@@ -97,20 +119,25 @@ class ResultPage extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(16),
+                  child: widget.capturedImage != null
+                      ? Image.file(
+                          File(widget.capturedImage!.path),
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: Colors.grey.shade200,
+                          child: Center(
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(Icons.person, size: 72, color: Colors.grey),
+                            ),
+                          ),
                         ),
-                        child: const Icon(Icons.person, size: 72, color: Colors.grey),
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ),
@@ -137,16 +164,19 @@ class ResultPage extends StatelessWidget {
                   _buildDetailRow('Status', 'Check In', Icons.check_circle, Colors.green),
 
                   // Waktu Absen
-                  _buildDetailRow('Waktu Absen', 'Senin, 12 April 2026 - 08:00 AM', Icons.access_time, Colors.blue),
+                  _buildDetailRow('Waktu Absen', '${_formatDate(widget.waktuAbsen)} - ${_formatTime(widget.waktuAbsen)}', Icons.access_time, Colors.blue),
 
                   // Lokasi
-                  _buildDetailRow('Lokasi', 'Dalam Radius Kantor', Icons.location_on, Colors.orange),
+                  _buildDetailRow('Lokasi', widget.lokasi, Icons.location_on, Colors.orange),
 
                   // Koordinat GPS
-                  _buildDetailRow('Koordinat', '-6.938396, 107.658411', Icons.gps_fixed, Colors.purple),
+                  _buildDetailRow('Koordinat', widget.koordinat, Icons.gps_fixed, Colors.purple),
 
                   // NRP/ID Karyawan
-                  _buildDetailRow('NRP', '12345678', Icons.badge, Colors.teal),
+                  _buildDetailRow('NRP', widget.nrp, Icons.badge, Colors.teal),
+
+                  // Nama
+                  _buildDetailRow('Nama', widget.nama, Icons.person, Colors.indigo),
 
                   // Validasi Wajah
                   _buildDetailRow('Validasi Wajah', 'Berhasil', Icons.face, Colors.green),
@@ -174,5 +204,19 @@ class ResultPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    const List<String> hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const List<String> bulan = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    return '${hari[dateTime.weekday - 1]}, ${dateTime.day} ${bulan[dateTime.month - 1]} ${dateTime.year}';
+  }
+
+  String _formatTime(DateTime dateTime) {
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} ${dateTime.hour >= 12 ? 'PM' : 'AM'}';
   }
 }

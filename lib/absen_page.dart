@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'result_page.dart';
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -80,7 +81,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
-Future<void> _prosesAbsen() async {
+  Future<void> _prosesAbsen() async {
     // 1. Validasi Input Kosong
     String inputNrp = _nrpController.text.trim();
     if (inputNrp.isEmpty) {
@@ -88,9 +89,15 @@ Future<void> _prosesAbsen() async {
       return;
     }
 
-    // 2. Validasi Jarak 
+    // 2. Validasi Jarak
     if (!_dalamRadius) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: Lu masih di luar radius kampus!'), backgroundColor: Colors.red));
+      return;
+    }
+
+    // 3. Validasi Kamera
+    if (!_isCameraInitialized || _cameraController == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kamera belum siap!'), backgroundColor: Colors.red));
       return;
     }
 
@@ -102,9 +109,20 @@ Future<void> _prosesAbsen() async {
     );
 
     try {
+      // 4. AMBIL FOTO DARI KAMERA
+      XFile? capturedImage;
+      try {
+        capturedImage = await _cameraController!.takePicture();
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context); // Tutup loading
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal ambil foto: $e'), backgroundColor: Colors.red));
+        return;
+      }
+
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-      // 3. CEK NRP KE BUKU INDUK FIREBASE (Cek ke collection 'nrp')
+      // 5. CEK NRP KE BUKU INDUK FIREBASE (Cek ke collection 'nrp')
       DocumentSnapshot docUser = await firestore.collection('nrp').doc(inputNrp).get();
 
       // Kalau NRP gak ketemu di database Firebase...
@@ -118,31 +136,35 @@ Future<void> _prosesAbsen() async {
       // Kalau NRP ketemu, tarik nama aslinya dari database
       String namaSiswa = docUser.get('nama');
 
-      // 4. SIMPAN DATA ABSENSI KE COLLECTION 'absensi'
+      // 6. SIMPAN DATA ABSENSI KE COLLECTION 'absensi'
       String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
 
       await firestore.collection('absensi').doc(uniqueId).set({
         'nrp': inputNrp,
-        'nama': namaSiswa, // Otomatis dapet "kevin pratama"
-        'latitude': _targetLat, 
+        'nama': namaSiswa,
+        'latitude': _targetLat,
         'longitude': _targetLng,
-        'waktu_absen': DateTime.now().toIso8601String(), 
+        'waktu_absen': DateTime.now().toIso8601String(),
         'status': 'Hadir',
+        'photo_path': capturedImage.path, // Simpan path foto
       });
 
       if (!mounted) return;
       Navigator.pop(context); // Tutup loading
       _nrpController.clear(); // Bersihin inputan biar kosong lagi
 
-      // Sukses!
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("MANTAP!"),
-          content: Text("Presensi diterima\n\nNama: $namaSiswa\nNRP: $inputNrp"),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("TUTUP"))
-          ],
+      // 7. NAVIGASI KE RESULT PAGE DENGAN DATA LENGKAP
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultPage(
+            nrp: inputNrp,
+            nama: namaSiswa,
+            waktuAbsen: DateTime.now(),
+            lokasi: 'Dalam Radius Kantor',
+            koordinat: '$_targetLat, $_targetLng',
+            capturedImage: capturedImage,
+          ),
         ),
       );
     } catch (e) {
