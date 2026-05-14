@@ -3,6 +3,41 @@ import 'package:flutter/material.dart';
 class ResultPage extends StatelessWidget {
   const ResultPage({super.key});
 
+  Widget _buildDetailRow(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 20, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +83,7 @@ class ResultPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Foto Absen dengan data overlay
+            // Foto Absen
             Center(
               child: Container(
                 width: double.infinity,
@@ -60,66 +95,65 @@ class ResultPage extends StatelessWidget {
                     BoxShadow(color: Colors.grey.withOpacity(0.12), blurRadius: 16, offset: const Offset(0, 8)),
                   ],
                 ),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    color: Colors.grey.shade200,
+                    child: Center(
                       child: Container(
-                        color: Colors.grey.shade200,
-                        child: Center(
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(Icons.person, size: 72, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.black.withOpacity(0.12), Colors.transparent],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 16,
-                      right: 16,
-                      child: Container(
-                        width: 170,
-                        padding: const EdgeInsets.all(14),
+                        width: 120,
+                        height: 120,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.24),
+                          color: Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Detail Absen', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-                            SizedBox(height: 10),
-                            Text('Senin, 12 April 2026', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
-                            SizedBox(height: 6),
-                            Text('08:00 AM', style: TextStyle(fontSize: 12, color: Colors.white70)),
-                            SizedBox(height: 10),
-                            Text('Dalam Radius Kantor', style: TextStyle(fontSize: 12, color: Colors.white70)),
-                            SizedBox(height: 10),
-                            Text('Check In', style: TextStyle(fontSize: 12, color: Colors.greenAccent, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
+                        child: const Icon(Icons.person, size: 72, color: Colors.grey),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            // Detail Keterangan Absen
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 6)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Keterangan Absen',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Status Absen
+                  _buildDetailRow('Status', 'Check In', Icons.check_circle, Colors.green),
+
+                  // Waktu Absen
+                  _buildDetailRow('Waktu Absen', 'Senin, 12 April 2026 - 08:00 AM', Icons.access_time, Colors.blue),
+
+                  // Lokasi
+                  _buildDetailRow('Lokasi', 'Dalam Radius Kantor', Icons.location_on, Colors.orange),
+
+                  // Koordinat GPS
+                  _buildDetailRow('Koordinat', '-6.938396, 107.658411', Icons.gps_fixed, Colors.purple),
+
+                  // NRP/ID Karyawan
+                  _buildDetailRow('NRP', '12345678', Icons.badge, Colors.teal),
+
+                  // Validasi Wajah
+                  _buildDetailRow('Validasi Wajah', 'Berhasil', Icons.face, Colors.green),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
             // Tombol Kembali ke Home
             ElevatedButton(
