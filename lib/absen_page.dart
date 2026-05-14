@@ -139,7 +139,7 @@ Future<void> _prosesAbsen() async {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text("MANTAP!"),
-          content: Text("Presensi masuk bro!\n\nNama: $namaSiswa\nNRP: $inputNrp"),
+          content: Text("Presensi diterima\n\nNama: $namaSiswa\nNRP: $inputNrp"),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("TUTUP"))
           ],
