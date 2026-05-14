@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
-class ResultPage extends StatefulWidget {
+class ResultPage extends StatelessWidget {
   final String nrp;
   final String nama;
   final DateTime waktuAbsen;
@@ -19,12 +20,6 @@ class ResultPage extends StatefulWidget {
     required this.koordinat,
     this.capturedImage,
   });
-
-  @override
-  State<ResultPage> createState() => _ResultPageState();
-}
-
-class _ResultPageState extends State<ResultPage> {
 
   @override
   Widget build(BuildContext context) {
@@ -65,13 +60,13 @@ class _ResultPageState extends State<ResultPage> {
                   const SizedBox(height: 16),
                   const Text('Absen Berhasil!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
                   const SizedBox(height: 8),
-                  Text('Presensi ${widget.nama} telah tercatat dengan sukses.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                  const Text('Presensi Anda telah tercatat dengan sukses.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16)),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Foto Absen dengan Overlay Minimalis
+            // Foto Absen dengan data overlay
             Center(
               child: Container(
                 width: double.infinity,
@@ -83,17 +78,43 @@ class _ResultPageState extends State<ResultPage> {
                     BoxShadow(color: Colors.grey.withOpacity(0.12), blurRadius: 16, offset: const Offset(0, 8)),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Stack(
-                    children: [
-                      // Foto asli atau placeholder
-                      widget.capturedImage != null
-                          ? Image.file(
-                              File(widget.capturedImage!.path),
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: capturedImage != null
+                          ? FutureBuilder<Uint8List>(
+                              future: capturedImage!.readAsBytes(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  );
+                                }
+                                if (snapshot.hasError || snapshot.data == null) {
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    child: Center(
+                                      child: Container(
+                                        width: 120,
+                                        height: 120,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade300,
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: const Icon(Icons.broken_image, size: 72, color: Colors.grey),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Image.memory(
+                                  snapshot.data!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                );
+                              },
                             )
                           : Container(
                               color: Colors.grey.shade200,
@@ -109,97 +130,48 @@ class _ResultPageState extends State<ResultPage> {
                                 ),
                               ),
                             ),
-
-                      // Overlay transparan dengan informasi minimal
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.7),
-                                Colors.black.withOpacity(0.3),
-                                Colors.transparent,
-                              ],
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(20),
-                              bottomRight: Radius.circular(20),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Nama dan waktu
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    widget.nama,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatTime(widget.waktuAbsen),
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              // Status dan lokasi
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.check_circle, color: Colors.greenAccent, size: 14),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        'Check In',
-                                        style: TextStyle(
-                                          color: Colors.greenAccent,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.location_on, color: Colors.white70, size: 14),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        'Dalam Radius',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.black.withOpacity(0.12), Colors.transparent],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Container(
+                        width: 170,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.24),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Detail Absen', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                            const SizedBox(height: 10),
+                            Text('${waktuAbsen.day}/${waktuAbsen.month}/${waktuAbsen.year}', style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 6),
+                            Text('${waktuAbsen.hour.toString().padLeft(2, '0')}:${waktuAbsen.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                            const SizedBox(height: 10),
+                            Text(lokasi, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                            const SizedBox(height: 10),
+                            const Text('Check In', style: TextStyle(fontSize: 12, color: Colors.greenAccent, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 30),
 
             // Tombol Kembali ke Home
             ElevatedButton(
@@ -220,9 +192,5 @@ class _ResultPageState extends State<ResultPage> {
         ),
       ),
     );
-  }
-
-  String _formatTime(DateTime dateTime) {
-    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} ${dateTime.hour >= 12 ? 'PM' : 'AM'}';
   }
 }

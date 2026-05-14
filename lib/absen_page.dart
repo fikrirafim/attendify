@@ -220,10 +220,13 @@ class _AbsenPageState extends State<AbsenPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Status Jangkauan', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        if (!_isLoadingLokasi)
+                        if (!_isLoadingLokasi) ...[
                           Text(_dalamRadius ? 'Di Area Kampus (${_jarakMeter.toStringAsFixed(0)}m)' : 'Di Luar Area (${_jarakMeter.toStringAsFixed(0)}m)', 
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _dalamRadius ? Colors.green[700] : Colors.red[700])
                           ),
+                          const SizedBox(height: 4),
+                          Text(_lokasiSaatIni, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        ],
                       ],
                     ),
                   ),
