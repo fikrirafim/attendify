@@ -1,5 +1,7 @@
 // home_page.dart
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -82,22 +84,74 @@ Widget build(BuildContext context) {
               Row(
                 children: [
                   Expanded(
-                    child: _buildCheckCard(
-                      title: 'Check In',
-                      time: '08:00 AM',
-                      icon: Icons.login_rounded,
-                      color: Colors.blueAccent,
-                      onTap: () {},
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: FirebaseFirestore.instance
+                          .collection('absensi')
+                          .where('waktu_absen', isGreaterThanOrEqualTo: DateTime.now().toIso8601String().split('T').first)
+                          .orderBy('waktu_absen', descending: true)
+                          .limit(1)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        String timeText = '--:-- --';
+                        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                          final data = snapshot.data!.docs.first.data();
+                          final waktu = data['waktu_absen'] as String?;
+                          if (waktu != null && waktu.isNotEmpty) {
+                            try {
+                              final dt = DateTime.parse(waktu);
+                              timeText = TimeOfDay.fromDateTime(dt).format(context);
+                            } catch (_) {
+                              timeText = waktu;
+                            }
+                          }
+                        }
+                        return _buildCheckCard(
+                          title: 'Check In',
+                          time: timeText,
+                          icon: Icons.login_rounded,
+                          color: Colors.blueAccent,
+                          onTap: () {},
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildCheckCard(
-                      title: 'Check Out',
-                      time: '--:-- --',
-                      icon: Icons.logout_rounded,
-                      color: Colors.grey[400]!,
-                      onTap: () {},
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: FirebaseFirestore.instance
+                          .collection('absensi')
+                          .where('waktu_absen', isGreaterThanOrEqualTo: DateTime.now().toIso8601String().split('T').first)
+                          .orderBy('waktu_absen', descending: true)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        String timeText = '--:-- --';
+                        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                          for (final doc in snapshot.data!.docs) {
+                            final data = doc.data();
+                            final status = (data['status'] ?? '').toString().toLowerCase();
+                            if (status.contains('out') || status.contains('checkout') || status.contains('check out') || status.contains('logout')) {
+                              final waktu = data['waktu_absen'] as String?;
+                              if (waktu != null && waktu.isNotEmpty) {
+                                try {
+                                  final dt = DateTime.parse(waktu);
+                                  timeText = TimeOfDay.fromDateTime(dt).format(context);
+                                } catch (_) {
+                                  timeText = waktu;
+                                }
+                              }
+                              break;
+                            }
+                          }
+                        }
+
+                        return _buildCheckCard(
+                          title: 'Check Out',
+                          time: timeText,
+                          icon: Icons.logout_rounded,
+                          color: Colors.redAccent,
+                          onTap: () => _performCheckOut(context),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -124,15 +178,37 @@ Widget build(BuildContext context) {
               ),
               const SizedBox(height: 16),
 
-              // Stats Row
-              Row(
-                children: [
-                  _buildStatCard('Hadir', '18', Colors.green),
-                  const SizedBox(width: 12),
-                  _buildStatCard('Tidak Hadir', '3', Colors.red),
-                  const SizedBox(width: 12),
-                  _buildStatCard('Terlambat', '2', Colors.orange),
-                ],
+              // Stats Row - live from Firestore (last 30 days)
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance
+                    .collection('absensi')
+                    .where('waktu_absen', isGreaterThanOrEqualTo: DateTime.now().subtract(const Duration(days: 30)).toIso8601String())
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  int hadir = 0;
+                  int tidakHadir = 0;
+                  int terlambat = 0;
+
+                  if (snapshot.hasData) {
+                    for (final doc in snapshot.data!.docs) {
+                      final data = doc.data();
+                      final status = (data['status'] ?? '').toString().toLowerCase();
+                      if (status.contains('hadir')) hadir++;
+                      else if (status.contains('terlambat') || status.contains('telat') || status.contains('late')) terlambat++;
+                      else if (status.contains('tidak') || status.contains('absen') || status.contains('tidak hadir')) tidakHadir++;
+                    }
+                  }
+
+                  return Row(
+                    children: [
+                      _buildStatCard('Hadir', hadir.toString(), Colors.green),
+                      const SizedBox(width: 12),
+                      _buildStatCard('Tidak Hadir', tidakHadir.toString(), Colors.red),
+                      const SizedBox(width: 12),
+                      _buildStatCard('Terlambat', terlambat.toString(), Colors.orange),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 32),
 
@@ -265,120 +341,65 @@ Widget build(BuildContext context) {
   }
 
   Widget _buildCalendarGrid(BuildContext context) {
-    final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final List<int> dates = List.generate(30, (i) => i + 1);
+    // We'll use TableCalendar to display a native month calendar.
+    final DateTime focusedDay = DateTime.now();
+    final DateTime firstDay = DateTime(focusedDay.year, focusedDay.month - 3, 1);
+    final DateTime lastDay = DateTime(focusedDay.year, focusedDay.month + 3, 0);
+
+    // Example event markers using the same sample sets as before
     final Set<int> presentDays = {1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30};
     final Set<int> lateDays = {7, 14};
     final Set<int> absentDays = {6, 13, 20, 21, 27, 28};
 
-    final mediaWidth = MediaQuery.of(context).size.width;
-    final availableWidth = mediaWidth - 16 * 2; // account for container padding
-    final crossAxisCount = 7;
-    final tileSize = (availableWidth / crossAxisCount).clamp(36.0, 64.0);
-    final rows = (dates.length / crossAxisCount).ceil();
-    final gridHeight = rows * (tileSize + 8);
+    Map<DateTime, List<dynamic>> events = {};
+    // populate events for current month
+  for (int d = 1; d <= 31; d++) {
+      try {
+        final date = DateTime(focusedDay.year, focusedDay.month, d);
+        final List<dynamic> list = [];
+        if (presentDays.contains(d)) list.add({'type': 'present'});
+        if (lateDays.contains(d)) list.add({'type': 'late'});
+        if (absentDays.contains(d)) list.add({'type': 'absent'});
+        if (list.isNotEmpty) events[date] = list;
+      } catch (_) {
+        // ignore invalid dates
+      }
+    }
 
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: days
-                .map((d) => Expanded(
-                      child: Center(
-                        child: Text(
-                          d,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: gridHeight,
-            child: GridView.count(
-              padding: EdgeInsets.zero,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1,
-              children: dates.map((date) {
-                Color bgColor;
-                Color textColor;
-                IconData? statusIcon;
-
-                if (presentDays.contains(date)) {
-                  bgColor = Colors.green[50]!;
-                  textColor = Colors.green[800]!;
-                  statusIcon = Icons.check_circle;
-                } else if (lateDays.contains(date)) {
-                  bgColor = Colors.orange[50]!;
-                  textColor = Colors.orange[800]!;
-                  statusIcon = Icons.access_time;
-                } else if (absentDays.contains(date)) {
-                  bgColor = Colors.red[50]!;
-                  textColor = Colors.red[800]!;
-                  statusIcon = Icons.close;
-                } else {
-                  bgColor = Colors.grey[50]!;
-                  textColor = Colors.grey[400]!;
-                  statusIcon = null;
-                }
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: date == 12 ? Border.all(color: Colors.blueAccent, width: 2) : null,
-                  ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              date.toString(),
-                              style: TextStyle(
-                                fontWeight: date == 12 ? FontWeight.bold : FontWeight.normal,
-                                fontSize: 16,
-                                color: textColor,
-                              ),
-                            ),
-                            if (statusIcon != null) ...[
-                              const SizedBox(height: 2),
-                              Icon(statusIcon, size: 12, color: textColor),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (date == 12)
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Colors.blueAccent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.all(12.0),
+      child: TableCalendar<dynamic>(
+        firstDay: firstDay,
+        lastDay: lastDay,
+        focusedDay: focusedDay,
+        availableGestures: AvailableGestures.horizontalSwipe,
+        headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
+        calendarStyle: CalendarStyle(
+          todayDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
+          markerDecoration: BoxDecoration(shape: BoxShape.circle),
+        ),
+        eventLoader: (day) {
+          return events[DateTime(day.year, day.month, day.day)] ?? [];
+        },
+        calendarBuilders: CalendarBuilders(
+          markerBuilder: (context, date, eventsForDay) {
+            if (eventsForDay.isEmpty) return const SizedBox.shrink();
+            final types = eventsForDay.map((e) => e['type']).toSet();
+            Color color = Colors.green;
+            if (types.contains('absent')) {
+              color = Colors.red;
+            } else if (types.contains('late')) color = Colors.orange;
+            return Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -466,5 +487,34 @@ Widget build(BuildContext context) {
         ],
       ),
     );
+  }
+
+  Future<void> _performCheckOut(BuildContext context) async {
+    // Simple checkout writer: creates a new absensi doc with status 'Check Out'
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final firestore = FirebaseFirestore.instance;
+      final now = DateTime.now();
+      final id = 'absen_checkout_${now.millisecondsSinceEpoch}';
+      await firestore.collection('absensi').doc(id).set({
+        'waktu_absen': now.toIso8601String(),
+        'status': 'Check Out',
+      });
+
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check Out berhasil'), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal Check Out: $e'), backgroundColor: Colors.red));
+      }
+    }
   }
 }
