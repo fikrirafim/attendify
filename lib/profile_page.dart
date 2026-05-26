@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Wajib tambah ini
 import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -9,6 +10,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  // Anggap ini NRP lu yang lagi login sekarang
+  final String currentNrp = '2304140028'; 
+
   void _handleLogout() {
     showDialog(
       context: context,
@@ -18,14 +22,11 @@ class _ProfilePageState extends State<ProfilePage> {
           content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Tutup popup
-              },
+              onPressed: () => Navigator.pop(context),
               child: const Text('Tidak', style: TextStyle(color: Colors.grey)),
             ),
             TextButton(
               onPressed: () {
-                // Logout dan navigate ke LoginPage
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -95,7 +96,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: const CircleAvatar(
                       radius: 45,
                       backgroundColor: Colors.grey,
-                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'), // Foto dummy keren
+                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -110,19 +111,46 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Dashboard Statistik
                   const Text('Statistik Bulan Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _buildStatCard('Hadir', '15', Colors.green),
-                      const SizedBox(width: 16),
-                      _buildStatCard('Terlambat', '2', Colors.orange),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
+                  
+                  // DI SINI MAGIC-NYA: Narik data dari Firestore Real-time!
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('absensi')
+                        .where('nrp', isEqualTo: currentNrp) // Filter cuma absen punya lu
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  // Informasi Akun Card
+                      int totalHadir = 0;
+                      int totalTerlambat = 0;
+
+                      // Hitung otomatis dari database
+                      if (snapshot.hasData) {
+                        for (var doc in snapshot.data!.docs) {
+                          String status = doc['status'] ?? '';
+                          if (status == 'Hadir') {
+                            totalHadir++;
+                          } else if (status == 'Terlambat') {
+                            totalTerlambat++;
+                          }
+                        }
+                      }
+
+                      return Row(
+                        children: [
+                          _buildStatCard('Hadir', '$totalHadir', Colors.green),
+                          const SizedBox(width: 16),
+                          _buildStatCard('Terlambat', '$totalTerlambat', Colors.orange),
+                        ],
+                      );
+                    },
+                  ),
+                  
+                  const SizedBox(height: 30),
                   const Text('Informasi Akun', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Container(
@@ -143,8 +171,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
-                  // Tombol Logout
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(

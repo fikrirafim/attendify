@@ -139,14 +139,17 @@ class _AbsenPageState extends State<AbsenPage> {
       // 6. SIMPAN DATA ABSENSI KE COLLECTION 'absensi'
       String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
 
+// Bikin logic jam, kalau lebih dari jam 8 pagi, statusnya 'Terlambat'
+      String statusKehadiran = DateTime.now().hour >= 8 ? 'Terlambat' : 'Hadir';
+
       await firestore.collection('absensi').doc(uniqueId).set({
         'nrp': inputNrp,
         'nama': namaSiswa,
         'latitude': _targetLat,
         'longitude': _targetLng,
         'waktu_absen': DateTime.now().toIso8601String(),
-        'status': 'Hadir',
-        'photo_path': capturedImage.path, // Simpan path foto
+        'status': statusKehadiran, // <--- Pake variabel yang dibikin
+        'photo_path': capturedImage.path, 
       });
 
       if (!mounted) return;
