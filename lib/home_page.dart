@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'history_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -171,7 +172,12 @@ Widget build(BuildContext context) {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HistoryPage()),
+                      );
+                    },
                     child: const Text('Detail', style: TextStyle(color: Colors.blueAccent)),
                   ),
                 ],
