@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'history_page.dart';
+import 'services/holiday_service.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -352,60 +353,82 @@ Widget build(BuildContext context) {
     final DateTime firstDay = DateTime(focusedDay.year, focusedDay.month - 3, 1);
     final DateTime lastDay = DateTime(focusedDay.year, focusedDay.month + 3, 0);
 
-    // Example event markers using the same sample sets as before
-    final Set<int> presentDays = {1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30};
-    final Set<int> lateDays = {7, 14};
-    final Set<int> absentDays = {6, 13, 20, 21, 27, 28};
-
-    Map<DateTime, List<dynamic>> events = {};
-    // populate events for current month
-  for (int d = 1; d <= 31; d++) {
-      try {
-        final date = DateTime(focusedDay.year, focusedDay.month, d);
-        final List<dynamic> list = [];
-        if (presentDays.contains(d)) list.add({'type': 'present'});
-        if (lateDays.contains(d)) list.add({'type': 'late'});
-        if (absentDays.contains(d)) list.add({'type': 'absent'});
-        if (list.isNotEmpty) events[date] = list;
-      } catch (_) {
-        // ignore invalid dates
-      }
-    }
+    // We'll stream cached holidays from Firestore using HolidayService
+    final holidayService = HolidayService(''); // API key not needed for reading cached Firestore
 
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: TableCalendar<dynamic>(
-        firstDay: firstDay,
-        lastDay: lastDay,
-        focusedDay: focusedDay,
-        availableGestures: AvailableGestures.horizontalSwipe,
-        headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
-        calendarStyle: CalendarStyle(
-          todayDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
-          markerDecoration: BoxDecoration(shape: BoxShape.circle),
-        ),
-        eventLoader: (day) {
-          return events[DateTime(day.year, day.month, day.day)] ?? [];
+      child: StreamBuilder<List<DateTime>>(
+        stream: holidayService.streamCachedHolidays('indonesia', focusedDay.year),
+        builder: (context, snap) {
+          final holidays = snap.data ?? <DateTime>[];
+          final holidayDates = holidays.where((d) => d.month == focusedDay.month).map((d) => d.day).toSet();
+
+          Map<DateTime, List<dynamic>> events = {};
+          // keep previous sample events for demonstration (optional)
+          final Set<int> presentDays = {1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30};
+          final Set<int> lateDays = {7, 14};
+          final Set<int> absentDays = {6, 13, 20, 21, 27, 28};
+          for (int d = 1; d <= 31; d++) {
+            try {
+              final date = DateTime(focusedDay.year, focusedDay.month, d);
+              final List<dynamic> list = [];
+              if (presentDays.contains(d)) list.add({'type': 'present'});
+              if (lateDays.contains(d)) list.add({'type': 'late'});
+              if (absentDays.contains(d)) list.add({'type': 'absent'});
+              if (list.isNotEmpty) events[date] = list;
+            } catch (_) {}
+          }
+
+          return TableCalendar<dynamic>(
+            firstDay: firstDay,
+            lastDay: lastDay,
+            focusedDay: focusedDay,
+            availableGestures: AvailableGestures.horizontalSwipe,
+            headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
+            calendarStyle: CalendarStyle(
+              todayDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
+            ),
+            eventLoader: (day) {
+              return events[DateTime(day.year, day.month, day.day)] ?? [];
+            },
+            calendarBuilders: CalendarBuilders(
+              dowBuilder: (context, day) {
+                final labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                final text = labels[day.weekday - 1];
+                final isSunday = day.weekday == DateTime.sunday;
+                return Center(
+                  child: Text(
+                    text,
+                    style: TextStyle(fontWeight: FontWeight.bold, color: isSunday ? Colors.redAccent : Colors.blueAccent),
+                  ),
+                );
+              },
+              defaultBuilder: (context, date, focusedDayParam) {
+                final isSunday = date.weekday == DateTime.sunday;
+                final isExtraHoliday = date.month == focusedDay.month && holidayDates.contains(date.day);
+                if (isSunday || isExtraHoliday) {
+                  return Container(
+                    margin: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        date.day.toString(),
+                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  );
+                }
+                return null;
+              },
+              markerBuilder: (context, date, eventsForDay) => const SizedBox.shrink(),
+            ),
+          );
         },
-        calendarBuilders: CalendarBuilders(
-          markerBuilder: (context, date, eventsForDay) {
-            if (eventsForDay.isEmpty) return const SizedBox.shrink();
-            final types = eventsForDay.map((e) => e['type']).toSet();
-            Color color = Colors.green;
-            if (types.contains('absent')) {
-              color = Colors.red;
-            } else if (types.contains('late')) color = Colors.orange;
-            return Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -437,11 +460,49 @@ Widget build(BuildContext context) {
             ),
           ),
           const SizedBox(height: 12),
-          _buildActivityItem('Check In', '08:02 AM', '12 April 2026', Icons.login, Colors.green),
-          const Divider(),
-          _buildActivityItem('Check Out', '05:30 PM', '11 April 2026', Icons.logout, Colors.red),
-          const Divider(),
-          _buildActivityItem('Terlambat', '08:20 AM', '10 April 2026', Icons.access_time, Colors.orange),
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance.collection('absensi').orderBy('waktu_absen', descending: true).limit(5).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text('Belum ada aktivitas.', style: TextStyle(color: Colors.grey[600])),
+                );
+              }
+
+              return Column(
+                children: List.generate(docs.length * 2 - 1, (i) {
+                  final idx = i ~/ 2;
+                  if (i.isOdd) return const Divider();
+                  final data = docs[idx].data();
+                  final status = (data['status'] ?? 'Aktivitas').toString();
+                  final waktu = (data['waktu_absen'] ?? '').toString();
+                  String timeText = '--:-- --';
+                  try {
+                    if (waktu.isNotEmpty) {
+                      timeText = TimeOfDay.fromDateTime(DateTime.parse(waktu)).format(context);
+                    }
+                  } catch (_) {}
+
+                  IconData icon = Icons.check_circle;
+                  MaterialColor color = Colors.green;
+                  if (status.toLowerCase().contains('out')) {
+                    icon = Icons.logout;
+                    color = Colors.red;
+                  } else if (status.toLowerCase().contains('terlambat') || status.toLowerCase().contains('telat')) {
+                    icon = Icons.access_time;
+                    color = Colors.orange;
+                  }
+
+                  return _buildActivityItem(status, timeText, waktu, icon, color);
+                }),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -496,8 +557,35 @@ Widget build(BuildContext context) {
   }
 
   Future<void> _performCheckOut(BuildContext context) async {
-    // Simple checkout writer: creates a new absensi doc with status 'Check Out'
+    // Prevent checkout if user hasn't checked in today.
     try {
+      final todayStart = DateTime.now().toIso8601String().split('T').first;
+      final query = await FirebaseFirestore.instance
+          .collection('absensi')
+          .where('waktu_absen', isGreaterThanOrEqualTo: todayStart)
+          .get();
+
+      bool hasCheckIn = false;
+      for (final doc in query.docs) {
+        final status = (doc.data()['status'] ?? '').toString().toLowerCase();
+        if (status.contains('hadir')) {
+          hasCheckIn = true;
+          break;
+        }
+      }
+
+      if (!hasCheckIn) {
+        // show floating warning and do not proceed
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('anda belum melakukan absen, tidak dapat checkout!'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 4),
+        ));
+        return;
+      }
+
+      // proceed with checkout
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -512,15 +600,11 @@ Widget build(BuildContext context) {
         'status': 'Check Out',
       });
 
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check Out berhasil'), backgroundColor: Colors.green));
-      }
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check Out berhasil'), backgroundColor: Colors.green));
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal Check Out: $e'), backgroundColor: Colors.red));
-      }
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal Check Out: $e'), backgroundColor: Colors.red));
     }
   }
 }
