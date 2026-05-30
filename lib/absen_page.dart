@@ -3,6 +3,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'result_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -38,7 +41,7 @@ class _AbsenPageState extends State<AbsenPage> {
   @override
   void dispose() {
     _cameraController?.dispose();
-    _nrpController.dispose(); // Jangan lupa dibuang biar gak bocor memori
+    _nrpController.dispose(); 
     super.dispose();
   }
 
@@ -91,7 +94,7 @@ class _AbsenPageState extends State<AbsenPage> {
 
     // 2. Validasi Jarak
     if (!_dalamRadius) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: Lu masih di luar radius kampus!'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal: Lu masih di luar radius kampus!'), backgroundColor: Colors.red));
       return;
     }
 
@@ -125,7 +128,6 @@ class _AbsenPageState extends State<AbsenPage> {
       // 5. CEK NRP KE BUKU INDUK FIREBASE (Cek ke collection 'nrp')
       DocumentSnapshot docUser = await firestore.collection('nrp').doc(inputNrp).get();
 
-      // Kalau NRP gak ketemu di database Firebase...
       if (!docUser.exists) {
         if (!mounted) return;
         Navigator.pop(context); // Tutup loading
@@ -133,13 +135,26 @@ class _AbsenPageState extends State<AbsenPage> {
         return;
       }
 
-      // Kalau NRP ketemu, tarik nama aslinya dari database
       String namaSiswa = docUser.get('nama');
-
-      // 6. SIMPAN DATA ABSENSI KE COLLECTION 'absensi'
       String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
 
-// Bikin logic jam, kalau lebih dari jam 8 pagi, statusnya 'Terlambat'
+      // 6. UPLOAD FOTO KE IMGBB (JALUR GRATIS AMAN DI CHROME)
+      final bytes = await capturedImage.readAsBytes(); // Baca foto jadi data mentah
+      
+      // TARUH API KEY IMGBB LU DI SINI
+      String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a'; 
+      
+      var request = http.MultipartRequest('POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
+      request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: 'absen.jpg'));
+      
+      var response = await request.send();
+      var responseData = await response.stream.bytesToString();
+      var json = jsonDecode(responseData);
+      
+      // Ambil Link URL gambar dari server ImgBB
+      String downloadUrl = json['data']['url']; 
+
+      // 7. SIMPAN DATA ABSENSI & LINK FOTO KE FIRESTORE
       String statusKehadiran = DateTime.now().hour >= 8 ? 'Terlambat' : 'Hadir';
 
       await firestore.collection('absensi').doc(uniqueId).set({
@@ -148,15 +163,15 @@ class _AbsenPageState extends State<AbsenPage> {
         'latitude': _targetLat,
         'longitude': _targetLng,
         'waktu_absen': DateTime.now().toIso8601String(),
-        'status': statusKehadiran, // <--- Pake variabel yang dibikin
-        'photo_path': capturedImage.path, 
+        'status': statusKehadiran, 
+        'photo_url': downloadUrl, // <--- Link ImgBB yang nampil di database
       });
 
       if (!mounted) return;
       Navigator.pop(context); // Tutup loading
       _nrpController.clear(); // Bersihin inputan biar kosong lagi
 
-      // 7. NAVIGASI KE RESULT PAGE DENGAN DATA LENGKAP
+      // 8. NAVIGASI KE RESULT PAGE DENGAN DATA LENGKAP
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -164,7 +179,7 @@ class _AbsenPageState extends State<AbsenPage> {
             nrp: inputNrp,
             nama: namaSiswa,
             waktuAbsen: DateTime.now(),
-            lokasi: 'Dalam Radius Kantor',
+            lokasi: 'Dalam Radius Kampus',
             koordinat: '$_targetLat, $_targetLng',
             capturedImage: capturedImage,
           ),

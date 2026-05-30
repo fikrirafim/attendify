@@ -1,6 +1,10 @@
 // login_page.dart
 import 'package:flutter/material.dart';
-import 'main.dart'; // Import MainNavigation
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'main.dart'; // Import MainNavigation buat karyawan
+import 'hr_dashboard.dart'; // Import Dashboard HR
+import 'register_hr_page.dart'; // Import Halaman Registrasi
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,24 +34,47 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = true;
       });
 
-      // Simulate API call / Firebase Auth
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        // 1. Auth ke Firebase Pake Email & Password Asli
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
-      // Demo credentials check (nanti bisa diganti dengan Firebase Auth)
-      if (_emailController.text == 'bima@attendify.com' && 
-          _passwordController.text == 'password123') {
+        // 2. Cek Role di Firestore buat misahin HR & Karyawan
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+        
+        if (!mounted) return;
+
+        if (userDoc.exists && userDoc.get('role') == 'hr') {
+          // Kalau HR, arahin ke Dashboard HR
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HRDashboard()));
+        } else {
+          // Kalau karyawan biasa, arahin ke MainNavigation
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainNavigation()));
+        }
+      } on FirebaseAuthException catch (e) {
         if (mounted) {
-          // Navigate to main app after successful login
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MainNavigation()),
+          String errorMessage = 'Email atau password salah!';
+          if (e.code == 'user-not-found') {
+            errorMessage = 'Email tidak terdaftar di sistem.';
+          } else if (e.code == 'wrong-password') {
+            errorMessage = 'Password yang Anda masukkan salah.';
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
-      } else {
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email atau password salah!'),
+            SnackBar(
+              content: Text('Error jaringan: $e'),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),
@@ -55,9 +82,11 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -345,35 +374,23 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Demo Credentials Info
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Demo Credentials',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Email: bima@attendify.com\nPassword: password123',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.8),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                  // Register HR Link (Pengganti tulisan Demo Credentials)
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterHRPage()));
+                    },
+                    child: Text(
+                      'Perusahaan Baru? Daftar HR Di Sini',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Colors.white,
+                      ),
                     ),
                   ),
+                  
                   const SizedBox(height: 16),
                   Text(
                     '© 2026 Attendify - All Rights Reserved',
