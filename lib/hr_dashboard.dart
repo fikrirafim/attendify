@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
 import 'manage_employee_page.dart';
+import 'setting_jam_page.dart';
+import 'karyawan_list_page.dart';
 
 class HRDashboard extends StatelessWidget {
   const HRDashboard({super.key});
@@ -58,15 +60,16 @@ class HRDashboard extends StatelessWidget {
                   const SizedBox(height: 16),
                   
                   _buildMenuCard(
-                    context,
-                    title: 'Pengaturan Jam Masuk',
-                    subtitle: 'Ubah batas waktu toleransi keterlambatan absensi',
-                    icon: Icons.access_time_filled,
-                    color: Colors.orange,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Menu Jam Masuk diklik!')));
-                    },
-                  ),
+                  context,
+                  title: 'Pengaturan Jam Masuk',
+                  subtitle: 'Ubah batas waktu toleransi keterlambatan absensi',
+                  icon: Icons.access_time_filled,
+                  color: Colors.orange,
+                  onTap: () {
+                    // INI YANG BARU
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingJamPage()));
+                  },
+                ),
                   const SizedBox(height: 16),
                   
                   _buildMenuCard(
@@ -76,8 +79,8 @@ class HRDashboard extends StatelessWidget {
                     icon: Icons.people_alt,
                     color: Colors.green,
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => ManageEmployeePage()));
-                    },
+                     Navigator.push(context, MaterialPageRoute(builder: (context) => KaryawanListPage()));
+                  },
                   ),
                 ],
               ),

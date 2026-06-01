@@ -16,8 +16,8 @@ class AbsenPage extends StatefulWidget {
 
 class _AbsenPageState extends State<AbsenPage> {
   // --- KONFIGURASI TITIK ABSEN ---
-  final double _targetLat = -6.938396;
-  final double _targetLng = 107.658411;
+  final double _targetLat = -7.028930518336651;
+  final double _targetLng =  107.69810578604543;
   final double _radiusMax = 50.0;
 
   // Variabel Lokasi & Kamera
@@ -28,7 +28,6 @@ class _AbsenPageState extends State<AbsenPage> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
 
-  // --- TAMBAHAN: CONTROLLER NRP & DATABASE LOKAL ---
   final TextEditingController _nrpController = TextEditingController();
 
   @override
@@ -85,26 +84,22 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   Future<void> _prosesAbsen() async {
-    // 1. Validasi Input Kosong
     String inputNrp = _nrpController.text.trim();
     if (inputNrp.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('NRP wajib diisi bro!'), backgroundColor: Colors.orange));
       return;
     }
 
-    // 2. Validasi Jarak
     if (!_dalamRadius) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal: Lu masih di luar radius kampus!'), backgroundColor: Colors.red));
       return;
     }
 
-    // 3. Validasi Kamera
     if (!_isCameraInitialized || _cameraController == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kamera belum siap!'), backgroundColor: Colors.red));
       return;
     }
 
-    // Munculin Loading...
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -112,25 +107,22 @@ class _AbsenPageState extends State<AbsenPage> {
     );
 
     try {
-      // 4. AMBIL FOTO DARI KAMERA
       XFile? capturedImage;
       try {
         capturedImage = await _cameraController!.takePicture();
       } catch (e) {
         if (!mounted) return;
-        Navigator.pop(context); // Tutup loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal ambil foto: $e'), backgroundColor: Colors.red));
         return;
       }
 
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-      // 5. CEK NRP KE BUKU INDUK FIREBASE (Cek ke collection 'nrp')
       DocumentSnapshot docUser = await firestore.collection('nrp').doc(inputNrp).get();
 
       if (!docUser.exists) {
         if (!mounted) return;
-        Navigator.pop(context); // Tutup loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('NRP $inputNrp tidak ada di Database Firebase!'), backgroundColor: Colors.red));
         return;
       }
@@ -138,10 +130,51 @@ class _AbsenPageState extends State<AbsenPage> {
       String namaSiswa = docUser.get('nama');
       String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
 
-      // 6. UPLOAD FOTO KE IMGBB (JALUR GRATIS AMAN DI CHROME)
-      final bytes = await capturedImage.readAsBytes(); // Baca foto jadi data mentah
+     // --- LOGIK BARU: AMBIL BATAS JAM MASUK DARI AKUN HR ---
+      String batasJamString = "08:00"; // Default
+      try {
+        QuerySnapshot hrSnapshot = await firestore.collection('users').where('role', isEqualTo: 'hr').get();
+        
+        for (var doc in hrSnapshot.docs) {
+          Map<String, dynamic> dataHR = doc.data() as Map<String, dynamic>;
+          if (dataHR.containsKey('jam_masuk_default') && dataHR['jam_masuk_default'] != null) {
+            String jamDitemukan = dataHR['jam_masuk_default'];
+            
+            // Simpan jam yang ditemui
+            batasJamString = jamDitemukan;
+            
+            // Kalau nemu jam yang BUKAN 08:00, berarti ini akun HR lu yang udah di-update. Langsung kunci pake ini!
+            if (jamDitemukan != "08:00") {
+              break; 
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Gagal baca jam HR");
+      }
+
+      // Hitung Tepat / Telat
+      List<String> splitJam = batasJamString.split(':');
+      int batasHour = int.parse(splitJam[0]);
+      int batasMinute = int.parse(splitJam[1]);
       
-      // TARUH API KEY IMGBB LU DI SINI
+      DateTime waktuSekarang = DateTime.now();
+      String statusKehadiran = "Tepat Waktu"; 
+      
+      if (waktuSekarang.hour > batasHour || (waktuSekarang.hour == batasHour && waktuSekarang.minute > batasMinute)) {
+        statusKehadiran = "Terlambat";
+      }
+
+      // Bikin format waktu jadi rapi (Contoh: 01-06-2026 07:21)
+      String hari = waktuSekarang.day.toString().padLeft(2, '0');
+      String bulan = waktuSekarang.month.toString().padLeft(2, '0');
+      String tahun = waktuSekarang.year.toString();
+      String jam = waktuSekarang.hour.toString().padLeft(2, '0');
+      String menit = waktuSekarang.minute.toString().padLeft(2, '0');
+      String formatWaktuCantik = "$hari-$bulan-$tahun $jam:$menit";
+
+      // UPLOAD FOTO KE IMGBB
+      final bytes = await capturedImage.readAsBytes(); 
       String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a'; 
       
       var request = http.MultipartRequest('POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
@@ -150,35 +183,37 @@ class _AbsenPageState extends State<AbsenPage> {
       var response = await request.send();
       var responseData = await response.stream.bytesToString();
       var json = jsonDecode(responseData);
-      
-      // Ambil Link URL gambar dari server ImgBB
       String downloadUrl = json['data']['url']; 
 
-      // 7. SIMPAN DATA ABSENSI & LINK FOTO KE FIRESTORE
-      String statusKehadiran = DateTime.now().hour >= 8 ? 'Terlambat' : 'Hadir';
-
+      // SIMPAN DATA KE FIRESTORE
       await firestore.collection('absensi').doc(uniqueId).set({
         'nrp': inputNrp,
         'nama': namaSiswa,
         'latitude': _targetLat,
         'longitude': _targetLng,
-        'waktu_absen': DateTime.now().toIso8601String(),
+        'waktu_absen': formatWaktuCantik, 
         'status': statusKehadiran, 
-        'photo_url': downloadUrl, // <--- Link ImgBB yang nampil di database
+        'photo_url': downloadUrl, 
       });
 
-      if (!mounted) return;
-      Navigator.pop(context); // Tutup loading
-      _nrpController.clear(); // Bersihin inputan biar kosong lagi
+if (!mounted) return;
+      Navigator.pop(context); 
+      _nrpController.clear(); 
 
-      // 8. NAVIGASI KE RESULT PAGE DENGAN DATA LENGKAP
+      // TAMBAHIN BARIS INI BIAR KETAHUAN SISTEM BACA JAM BERAPA
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Status lu: $statusKehadiran (Sistem ngebaca batas jam: $batasJamString)'), 
+        backgroundColor: statusKehadiran == 'Terlambat' ? Colors.red : Colors.green,
+      ));
+
+      // PINDAH KE RESULT PAGE
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultPage(
             nrp: inputNrp,
             nama: namaSiswa,
-            waktuAbsen: DateTime.now(),
+            waktuAbsen: waktuSekarang, // Kirim tipe DateTime asli buat ResultPage
             lokasi: 'Dalam Radius Kampus',
             koordinat: '$_targetLat, $_targetLng',
             capturedImage: capturedImage,
@@ -200,7 +235,7 @@ class _AbsenPageState extends State<AbsenPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Presensi LPKIA', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: const Text('Attendify', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
