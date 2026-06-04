@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 import 'manage_employee_page.dart';
 import 'setting_jam_page.dart';
@@ -49,6 +50,37 @@ class HRDashboard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 28),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'karyawan').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.white));
+                }
+
+                final int totalKaryawan = snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Total Karyawan',
+                        style: TextStyle(fontSize: 18, color: Colors.blue[700], fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        totalKaryawan.toString(),
+                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 32),
             
             // Menu Cards
             Padding(
