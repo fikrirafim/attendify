@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Tambahan buat baca user login
 import 'result_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -21,14 +21,12 @@ class _AbsenPageState extends State<AbsenPage> {
   final double _radiusMax = 50.0;
 
   // Variabel Lokasi & Kamera
-  String _lokasiSaatIni = 'Mencari lokasi...';
+  String _lokasiSaatIni = 'Sedang mencari lokasi...';
   bool _isLoadingLokasi = true;
   bool _dalamRadius = false;
   double _jarakMeter = 0.0;
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
-
-  final TextEditingController _nrpController = TextEditingController();
 
   @override
   void initState() {
@@ -40,7 +38,6 @@ class _AbsenPageState extends State<AbsenPage> {
   @override
   void dispose() {
     _cameraController?.dispose();
-    _nrpController.dispose(); 
     super.dispose();
   }
 
@@ -77,26 +74,28 @@ class _AbsenPageState extends State<AbsenPage> {
       });
     } catch (e) {
       setState(() {
-        _lokasiSaatIni = 'Gagal akses GPS';
+        _lokasiSaatIni = 'Gagal mengakses layanan GPS';
         _isLoadingLokasi = false;
       });
     }
   }
 
   Future<void> _prosesAbsen() async {
-    String inputNrp = _nrpController.text.trim();
-    if (inputNrp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('NRP wajib diisi bro!'), backgroundColor: Colors.orange));
-      return;
-    }
-
+    // 1. Validasi Lokasi & Kamera dengan bahasa formal
     if (!_dalamRadius) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal: Lu masih di luar radius kampus!'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Presensi Gagal: Anda berada di luar jangkauan area kampus.'), backgroundColor: Colors.red));
       return;
     }
 
     if (!_isCameraInitialized || _cameraController == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kamera belum siap!'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sistem kamera belum siap, mohon tunggu sebentar.'), backgroundColor: Colors.red));
+      return;
+    }
+
+    // 2. Tarik Data User yang sedang Login
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sesi tidak valid, silakan login kembali.'), backgroundColor: Colors.red));
       return;
     }
 
@@ -107,53 +106,49 @@ class _AbsenPageState extends State<AbsenPage> {
     );
 
     try {
+      // 3. Cari NRP & Nama otomatis dari Firestore berdasarkan email login
+      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+      QuerySnapshot userSnapshot = await firestore.collection('users').where('email', isEqualTo: currentUser.email).limit(1).get();
+      
+      if (userSnapshot.docs.isEmpty) {
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data pengguna tidak ditemukan di sistem.'), backgroundColor: Colors.red));
+        return;
+      }
+
+      var dataUser = userSnapshot.docs.first.data() as Map<String, dynamic>;
+      String inputNrp = dataUser['nrp'] ?? '000000';
+      String namaSiswa = dataUser['nama'] ?? 'Karyawan';
+      String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
+
+      // 4. Ambil Foto
       XFile? capturedImage;
       try {
         capturedImage = await _cameraController!.takePicture();
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal ambil foto: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengambil gambar: $e'), backgroundColor: Colors.red));
         return;
       }
 
-      final FirebaseFirestore firestore = FirebaseFirestore.instance;
-      DocumentSnapshot docUser = await firestore.collection('nrp').doc(inputNrp).get();
-
-      if (!docUser.exists) {
-        if (!mounted) return;
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('NRP $inputNrp tidak ada di Database Firebase!'), backgroundColor: Colors.red));
-        return;
-      }
-
-      String namaSiswa = docUser.get('nama');
-      String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
-
-     // --- LOGIK BARU: AMBIL BATAS JAM MASUK DARI AKUN HR ---
-      String batasJamString = "08:00"; // Default
+      // 5. Cek Batas Jam HR
+      String batasJamString = "08:00"; 
       try {
         QuerySnapshot hrSnapshot = await firestore.collection('users').where('role', isEqualTo: 'hr').get();
-        
         for (var doc in hrSnapshot.docs) {
           Map<String, dynamic> dataHR = doc.data() as Map<String, dynamic>;
           if (dataHR.containsKey('jam_masuk_default') && dataHR['jam_masuk_default'] != null) {
             String jamDitemukan = dataHR['jam_masuk_default'];
-            
-            // Simpan jam yang ditemui
             batasJamString = jamDitemukan;
-            
-            // Kalau nemu jam yang BUKAN 08:00, berarti ini akun HR lu yang udah di-update. Langsung kunci pake ini!
-            if (jamDitemukan != "08:00") {
-              break; 
-            }
+            if (jamDitemukan != "08:00") break; 
           }
         }
       } catch (e) {
-        debugPrint("Gagal baca jam HR");
+        debugPrint("Gagal memuat konfigurasi jam HR");
       }
 
-      // Hitung Tepat / Telat
       List<String> splitJam = batasJamString.split(':');
       int batasHour = int.parse(splitJam[0]);
       int batasMinute = int.parse(splitJam[1]);
@@ -165,7 +160,6 @@ class _AbsenPageState extends State<AbsenPage> {
         statusKehadiran = "Terlambat";
       }
 
-      // Bikin format waktu jadi rapi (Contoh: 01-06-2026 07:21)
       String hari = waktuSekarang.day.toString().padLeft(2, '0');
       String bulan = waktuSekarang.month.toString().padLeft(2, '0');
       String tahun = waktuSekarang.year.toString();
@@ -173,7 +167,7 @@ class _AbsenPageState extends State<AbsenPage> {
       String menit = waktuSekarang.minute.toString().padLeft(2, '0');
       String formatWaktuCantik = "$hari-$bulan-$tahun $jam:$menit";
 
-      // UPLOAD FOTO KE IMGBB
+      // 6. Upload ImgBB
       final bytes = await capturedImage.readAsBytes(); 
       String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a'; 
       
@@ -185,7 +179,7 @@ class _AbsenPageState extends State<AbsenPage> {
       var json = jsonDecode(responseData);
       String downloadUrl = json['data']['url']; 
 
-      // SIMPAN DATA KE FIRESTORE
+      // 7. Simpan Database
       await firestore.collection('absensi').doc(uniqueId).set({
         'nrp': inputNrp,
         'nama': namaSiswa,
@@ -196,25 +190,24 @@ class _AbsenPageState extends State<AbsenPage> {
         'photo_url': downloadUrl, 
       });
 
-if (!mounted) return;
+      if (!mounted) return;
       Navigator.pop(context); 
-      _nrpController.clear(); 
 
-      // TAMBAHIN BARIS INI BIAR KETAHUAN SISTEM BACA JAM BERAPA
+      // Notifikasi Formal
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Status lu: $statusKehadiran (Sistem ngebaca batas jam: $batasJamString)'), 
+        content: Text('Presensi berhasil: $statusKehadiran (Batas waktu: $batasJamString)'), 
         backgroundColor: statusKehadiran == 'Terlambat' ? Colors.red : Colors.green,
       ));
 
-      // PINDAH KE RESULT PAGE
+      // 8. Pindah Result
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResultPage(
             nrp: inputNrp,
             nama: namaSiswa,
-            waktuAbsen: waktuSekarang, // Kirim tipe DateTime asli buat ResultPage
-            lokasi: 'Dalam Radius Kampus',
+            waktuAbsen: waktuSekarang,
+            lokasi: 'Terverifikasi di Area Kampus',
             koordinat: '$_targetLat, $_targetLng',
             capturedImage: capturedImage,
           ),
@@ -224,7 +217,7 @@ if (!mounted) return;
       if (!mounted) return;
       Navigator.pop(context);
       debugPrint("ERROR: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error jaringan: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Terjadi kesalahan sistem: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -235,7 +228,7 @@ if (!mounted) return;
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Attendify', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: const Text('Presensi', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -305,29 +298,7 @@ if (!mounted) return;
             ),
             const SizedBox(height: 30),
 
-            // INPUT NRP
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-              ),
-              child: TextField(
-                controller: _nrpController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Masukkan NRP',
-                  hintText: 'Contoh: 2304140028',
-                  prefixIcon: const Icon(Icons.badge_outlined, color: Colors.blueAccent),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Tombol Action
+            // Tombol Action - SEKARANG LANGSUNG DI BAWAH KAMERA
             ElevatedButton(
               onPressed: _isLoadingLokasi ? null : _prosesAbsen,
               style: ElevatedButton.styleFrom(
@@ -336,7 +307,7 @@ if (!mounted) return;
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: _dalamRadius ? 5 : 0,
               ),
-              child: const Text('KIRIM ABSENSI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: const Text('KIRIM PRESENSI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             ),
             const SizedBox(height: 20),
           ],
