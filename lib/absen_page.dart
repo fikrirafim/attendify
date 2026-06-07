@@ -16,8 +16,8 @@ class AbsenPage extends StatefulWidget {
 
 class _AbsenPageState extends State<AbsenPage> {
   // --- KONFIGURASI TITIK ABSEN ---
-  final double _targetLat = -7.028930518336651;
-  final double _targetLng =  107.69810578604543;
+  final double _targetLat = -7.0374897906321445;
+  final double _targetLng =  107.69522312602665;
   final double _radiusMax = 50.0;
 
   // Variabel Lokasi & Kamera
@@ -80,8 +80,8 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
-  Future<void> _prosesAbsen() async {
-    // 1. Validasi Lokasi & Kamera dengan bahasa formal
+ Future<void> _prosesAbsen() async {
+    // 1. Validasi Lokasi & Kamera
     if (!_dalamRadius) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Presensi Gagal: Anda berada di luar jangkauan area kampus.'), backgroundColor: Colors.red));
       return;
@@ -106,7 +106,6 @@ class _AbsenPageState extends State<AbsenPage> {
     );
 
     try {
-      // 3. Cari NRP & Nama otomatis dari Firestore berdasarkan email login
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
       QuerySnapshot userSnapshot = await firestore.collection('users').where('email', isEqualTo: currentUser.email).limit(1).get();
       
@@ -120,7 +119,41 @@ class _AbsenPageState extends State<AbsenPage> {
       var dataUser = userSnapshot.docs.first.data() as Map<String, dynamic>;
       String inputNrp = dataUser['nrp'] ?? '000000';
       String namaSiswa = dataUser['nama'] ?? 'Karyawan';
-      String uniqueId = "absen_${inputNrp}_${DateTime.now().millisecondsSinceEpoch}";
+
+      // --- LOGIK BARU: CEK JATAH ABSEN HARI INI ---
+      DateTime waktuSekarang = DateTime.now();
+      String hari = waktuSekarang.day.toString().padLeft(2, '0');
+      String bulan = waktuSekarang.month.toString().padLeft(2, '0');
+      String tahun = waktuSekarang.year.toString();
+      String tanggalHariIni = "$hari-$bulan-$tahun"; // Contoh: 07-06-2026
+
+      // Tarik semua riwayat absen milik NRP ini
+      QuerySnapshot riwayatAbsen = await firestore.collection('absensi').where('nrp', isEqualTo: inputNrp).get();
+
+      int hitungAbsenHariIni = 0;
+      for (var doc in riwayatAbsen.docs) {
+        String waktu = doc['waktu_absen'] ?? '';
+        // Kalau format waktunya diawali dengan tanggal hari ini, berarti itu absen hari ini
+        if (waktu.startsWith(tanggalHariIni)) {
+          hitungAbsenHariIni++;
+        }
+      }
+
+      // Kalau udah absen 2x hari ini, langsung tolak mentah-mentah!
+      if (hitungAbsenHariIni >= 2) {
+        if (!mounted) return;
+        Navigator.pop(context); // Tutup loading
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Presensi ditolak: Anda sudah melakukan absen Masuk dan Pulang hari ini.'), 
+          backgroundColor: Colors.red
+        ));
+        return;
+      }
+
+      // Tentukan ini absen Masuk atau Pulang
+      String jenisAbsen = hitungAbsenHariIni == 0 ? "Masuk" : "Pulang";
+      String uniqueId = "absen_${inputNrp}_${waktuSekarang.millisecondsSinceEpoch}";
+      // ---------------------------------------------
 
       // 4. Ambil Foto
       XFile? capturedImage;
@@ -133,39 +166,54 @@ class _AbsenPageState extends State<AbsenPage> {
         return;
       }
 
-      // 5. Cek Batas Jam HR
-      String batasJamString = "08:00"; 
+// 5. Cek Batas Jam HR (Masuk & Pulang)
+      String batasJamMasuk = "08:00"; 
+      String batasJamPulang = "17:00"; 
+      
       try {
         QuerySnapshot hrSnapshot = await firestore.collection('users').where('role', isEqualTo: 'hr').get();
         for (var doc in hrSnapshot.docs) {
           Map<String, dynamic> dataHR = doc.data() as Map<String, dynamic>;
           if (dataHR.containsKey('jam_masuk_default') && dataHR['jam_masuk_default'] != null) {
-            String jamDitemukan = dataHR['jam_masuk_default'];
-            batasJamString = jamDitemukan;
-            if (jamDitemukan != "08:00") break; 
+            batasJamMasuk = dataHR['jam_masuk_default'];
+          }
+          if (dataHR.containsKey('jam_pulang_default') && dataHR['jam_pulang_default'] != null) {
+            batasJamPulang = dataHR['jam_pulang_default'];
           }
         }
       } catch (e) {
         debugPrint("Gagal memuat konfigurasi jam HR");
       }
 
-      List<String> splitJam = batasJamString.split(':');
-      int batasHour = int.parse(splitJam[0]);
-      int batasMinute = int.parse(splitJam[1]);
-      
-      DateTime waktuSekarang = DateTime.now();
       String statusKehadiran = "Tepat Waktu"; 
       
-      if (waktuSekarang.hour > batasHour || (waktuSekarang.hour == batasHour && waktuSekarang.minute > batasMinute)) {
-        statusKehadiran = "Terlambat";
+      // LOGIKA KETAT: Masuk vs Pulang
+      if (jenisAbsen == "Masuk") {
+        List<String> splitMasuk = batasJamMasuk.split(':');
+        int batasHourMasuk = int.parse(splitMasuk[0]);
+        int batasMinuteMasuk = int.parse(splitMasuk[1]);
+        
+        // Kalau jam sekarang LEBIH DARI jam masuk = Terlambat
+        if (waktuSekarang.hour > batasHourMasuk || (waktuSekarang.hour == batasHourMasuk && waktuSekarang.minute > batasMinuteMasuk)) {
+          statusKehadiran = "Terlambat";
+        }
+      } else {
+        // Kalau ini absen Pulang
+        List<String> splitPulang = batasJamPulang.split(':');
+        int batasHourPulang = int.parse(splitPulang[0]);
+        int batasMinutePulang = int.parse(splitPulang[1]);
+        
+        // Kalau jam sekarang KURANG DARI jam pulang = Pulang Cepat
+        if (waktuSekarang.hour < batasHourPulang || (waktuSekarang.hour == batasHourPulang && waktuSekarang.minute < batasMinutePulang)) {
+          statusKehadiran = "Pulang Cepat";
+        } else {
+          statusKehadiran = "Selesai Sif"; // Pulang di jam yang aman
+        }
       }
 
-      String hari = waktuSekarang.day.toString().padLeft(2, '0');
-      String bulan = waktuSekarang.month.toString().padLeft(2, '0');
-      String tahun = waktuSekarang.year.toString();
       String jam = waktuSekarang.hour.toString().padLeft(2, '0');
       String menit = waktuSekarang.minute.toString().padLeft(2, '0');
-      String formatWaktuCantik = "$hari-$bulan-$tahun $jam:$menit";
+      String formatWaktuCantik = "$tanggalHariIni $jam:$menit";
 
       // 6. Upload ImgBB
       final bytes = await capturedImage.readAsBytes(); 
@@ -187,6 +235,7 @@ class _AbsenPageState extends State<AbsenPage> {
         'longitude': _targetLng,
         'waktu_absen': formatWaktuCantik, 
         'status': statusKehadiran, 
+        'jenis_absen': jenisAbsen, // Menyimpan keterangan Masuk/Pulang
         'photo_url': downloadUrl, 
       });
 
@@ -195,7 +244,7 @@ class _AbsenPageState extends State<AbsenPage> {
 
       // Notifikasi Formal
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Presensi berhasil: $statusKehadiran (Batas waktu: $batasJamString)'), 
+        content: Text('Presensi $jenisAbsen berhasil: $statusKehadiran'), 
         backgroundColor: statusKehadiran == 'Terlambat' ? Colors.red : Colors.green,
       ));
 

@@ -5,6 +5,7 @@ import 'login_page.dart';
 import 'manage_employee_page.dart';
 import 'setting_jam_page.dart';
 import 'karyawan_list_page.dart';
+import 'approval_izin_page.dart'; 
 
 class HRDashboard extends StatelessWidget {
   const HRDashboard({super.key});
@@ -55,7 +56,7 @@ class HRDashboard extends StatelessWidget {
               stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'karyawan').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.white));
+                  return const Center(child: CircularProgressIndicator(color: Colors.blueAccent)); // Warna diubah biru biar kelihatan
                 }
 
                 final int totalKaryawan = snapshot.hasData ? snapshot.data!.docs.length : 0;
@@ -92,28 +93,41 @@ class HRDashboard extends StatelessWidget {
                   const SizedBox(height: 16),
                   
                   _buildMenuCard(
-                  context,
-                  title: 'Pengaturan Jam Masuk',
-                  subtitle: 'Ubah batas waktu toleransi keterlambatan absensi',
-                  icon: Icons.access_time_filled,
-                  color: Colors.orange,
-                  onTap: () {
-                    // INI YANG BARU
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SettingJamPage()));
-                  },
-                ),
+                    context,
+                    title: 'Pengaturan Jam Operasional',
+                    subtitle: 'Ubah batas waktu Masuk dan Pulang absensi',
+                    icon: Icons.access_time_filled,
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingJamPage()));
+                    },
+                  ),
                   const SizedBox(height: 16),
                   
                   _buildMenuCard(
                     context,
                     title: 'Manajemen Karyawan',
-                    subtitle: 'Input data karyawan baru dan buat akun absensi',
+                    subtitle: 'Input data karyawan, rekap absen & edit profil',
                     icon: Icons.people_alt,
                     color: Colors.green,
                     onTap: () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => KaryawanListPage()));
-                  },
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const KaryawanListPage()));
+                    },
                   ),
+                  const SizedBox(height: 16),
+
+                  // --- TAMBAHAN MENU APPROVAL IZIN DI SINI ---
+                  _buildMenuCard(
+                    context,
+                    title: 'Persetujuan Izin',
+                    subtitle: 'Review pengajuan cuti, sakit & izin karyawan',
+                    icon: Icons.mark_email_unread_outlined,
+                    color: Colors.purple, // Pakai warna ungu biar cakep dan beda dari yang lain
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ApprovalIzinPage()));
+                    },
+                  ),
+                  
                 ],
               ),
             ),
