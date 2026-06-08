@@ -29,6 +29,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
         String nama = dataIzin['nama'] ?? '';
         String jenis = dataIzin['jenis_izin'] ?? 'Izin';
         String tglMulai = dataIzin['tanggal_mulai'] ?? '';
+        String tglSelesai = dataIzin['tanggal_selesai'] ?? tglMulai;
         
         // Bikin ID unik
         String uniqueId = "absen_${nrp}_${DateTime.now().millisecondsSinceEpoch}";
@@ -46,6 +47,34 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
           'jenis_absen': 'Izin Resmi',
           'photo_url': dataIzin['bukti_url'] ?? '', 
         });
+
+        // --- FITUR BARU: POTONG SISA CUTI OTOMATIS (VERSI PINTAR) ---
+        if (jenis == 'Cuti Tahunan') {
+          try {
+            // Hitung selisih hari
+            List<String> startParts = tglMulai.split('-');
+            List<String> endParts = tglSelesai.split('-');
+            DateTime start = DateTime(int.parse(startParts[2]), int.parse(startParts[1]), int.parse(startParts[0]));
+            DateTime end = DateTime(int.parse(endParts[2]), int.parse(endParts[1]), int.parse(endParts[0]));
+            
+            int lamaCuti = end.difference(start).inDays + 1; 
+
+            // Cari user berdasarkan NRP
+            var userQuery = await firestore.collection('users').where('nrp', isEqualTo: nrp).limit(1).get();
+            if (userQuery.docs.isNotEmpty) {
+              var userData = userQuery.docs.first.data() as Map<String, dynamic>;
+              
+              // MAGIC-NYA DI SINI: Kalau 'sisa_cuti' kosong di db, otomatis dianggap 12!
+              int sisaCutiSaatIni = userData['sisa_cuti'] ?? 12; 
+              
+              await firestore.collection('users').doc(userQuery.docs.first.id).update({
+                'sisa_cuti': sisaCutiSaatIni - lamaCuti // Update dengan sisa cuti terbaru
+              });
+            }
+          } catch (e) {
+            print('Gagal memotong sisa cuti: $e');
+          }
+        }
       }
 
       if (!mounted) return;

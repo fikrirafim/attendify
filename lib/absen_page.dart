@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Tambahan buat baca user login
+import 'package:firebase_auth/firebase_auth.dart'; 
 import 'result_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -16,8 +16,8 @@ class AbsenPage extends StatefulWidget {
 
 class _AbsenPageState extends State<AbsenPage> {
   // --- KONFIGURASI TITIK ABSEN ---
-  final double _targetLat = -7.0374897906321445;
-  final double _targetLng =  107.69522312602665;
+  final double _targetLat = -6.887228403854846;
+  final double _targetLng =  107.52900483498148;
   final double _radiusMax = 50.0;
 
   // Variabel Lokasi & Kamera
@@ -80,7 +80,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
- Future<void> _prosesAbsen() async {
+  Future<void> _prosesAbsen() async {
     // 1. Validasi Lokasi & Kamera
     if (!_dalamRadius) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Presensi Gagal: Anda berada di luar jangkauan area kampus.'), backgroundColor: Colors.red));
@@ -125,24 +125,22 @@ class _AbsenPageState extends State<AbsenPage> {
       String hari = waktuSekarang.day.toString().padLeft(2, '0');
       String bulan = waktuSekarang.month.toString().padLeft(2, '0');
       String tahun = waktuSekarang.year.toString();
-      String tanggalHariIni = "$hari-$bulan-$tahun"; // Contoh: 07-06-2026
+      String tanggalHariIni = "$hari-$bulan-$tahun"; 
 
-      // Tarik semua riwayat absen milik NRP ini
       QuerySnapshot riwayatAbsen = await firestore.collection('absensi').where('nrp', isEqualTo: inputNrp).get();
 
       int hitungAbsenHariIni = 0;
       for (var doc in riwayatAbsen.docs) {
         String waktu = doc['waktu_absen'] ?? '';
-        // Kalau format waktunya diawali dengan tanggal hari ini, berarti itu absen hari ini
         if (waktu.startsWith(tanggalHariIni)) {
           hitungAbsenHariIni++;
         }
       }
 
-      // Kalau udah absen 2x hari ini, langsung tolak mentah-mentah!
+      // Tolak kalau udah absen 2x
       if (hitungAbsenHariIni >= 2) {
         if (!mounted) return;
-        Navigator.pop(context); // Tutup loading
+        Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Presensi ditolak: Anda sudah melakukan absen Masuk dan Pulang hari ini.'), 
           backgroundColor: Colors.red
@@ -150,10 +148,8 @@ class _AbsenPageState extends State<AbsenPage> {
         return;
       }
 
-      // Tentukan ini absen Masuk atau Pulang
       String jenisAbsen = hitungAbsenHariIni == 0 ? "Masuk" : "Pulang";
       String uniqueId = "absen_${inputNrp}_${waktuSekarang.millisecondsSinceEpoch}";
-      // ---------------------------------------------
 
       // 4. Ambil Foto
       XFile? capturedImage;
@@ -166,7 +162,7 @@ class _AbsenPageState extends State<AbsenPage> {
         return;
       }
 
-// 5. Cek Batas Jam HR (Masuk & Pulang)
+      // 5. Cek Batas Jam HR (Masuk & Pulang)
       String batasJamMasuk = "08:00"; 
       String batasJamPulang = "17:00"; 
       
@@ -193,21 +189,18 @@ class _AbsenPageState extends State<AbsenPage> {
         int batasHourMasuk = int.parse(splitMasuk[0]);
         int batasMinuteMasuk = int.parse(splitMasuk[1]);
         
-        // Kalau jam sekarang LEBIH DARI jam masuk = Terlambat
         if (waktuSekarang.hour > batasHourMasuk || (waktuSekarang.hour == batasHourMasuk && waktuSekarang.minute > batasMinuteMasuk)) {
           statusKehadiran = "Terlambat";
         }
       } else {
-        // Kalau ini absen Pulang
         List<String> splitPulang = batasJamPulang.split(':');
         int batasHourPulang = int.parse(splitPulang[0]);
         int batasMinutePulang = int.parse(splitPulang[1]);
         
-        // Kalau jam sekarang KURANG DARI jam pulang = Pulang Cepat
         if (waktuSekarang.hour < batasHourPulang || (waktuSekarang.hour == batasHourPulang && waktuSekarang.minute < batasMinutePulang)) {
           statusKehadiran = "Pulang Cepat";
         } else {
-          statusKehadiran = "Selesai Sif"; // Pulang di jam yang aman
+          statusKehadiran = "Selesai Sif"; 
         }
       }
 
@@ -215,17 +208,30 @@ class _AbsenPageState extends State<AbsenPage> {
       String menit = waktuSekarang.minute.toString().padLeft(2, '0');
       String formatWaktuCantik = "$tanggalHariIni $jam:$menit";
 
-      // 6. Upload ImgBB
-      final bytes = await capturedImage.readAsBytes(); 
-      String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a'; 
-      
-      var request = http.MultipartRequest('POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
-      request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: 'absen.jpg'));
-      
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      var json = jsonDecode(responseData);
-      String downloadUrl = json['data']['url']; 
+      // 6. Upload ImgBB (SISTEM ANTI-BADAI / KEBAL ERROR)
+      String downloadUrl = ""; 
+      try {
+        final bytes = await capturedImage.readAsBytes(); 
+        
+        // !!! PENTING: GANTI API KEY DI BAWAH INI SAMA API KEY BARU LU !!!
+        String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a'; 
+        
+        var request = http.MultipartRequest('POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
+        request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: 'absen.jpg'));
+        
+        var response = await request.send();
+        var responseData = await response.stream.bytesToString();
+        var json = jsonDecode(responseData);
+        
+        if (response.statusCode == 200 && json['data'] != null) {
+          downloadUrl = json['data']['url']; 
+        } else {
+          debugPrint("ImgBB Nolak: ${json['error']}");
+        }
+      } catch (e) {
+        // Kalau internet diblokir provider, dia nyasar ke sini dan GAK BAKAL CRASH!
+        debugPrint("Upload foto gagal karena koneksi, lanjut simpan data absen tanpa foto. Error: $e");
+      }
 
       // 7. Simpan Database
       await firestore.collection('absensi').doc(uniqueId).set({
@@ -235,8 +241,8 @@ class _AbsenPageState extends State<AbsenPage> {
         'longitude': _targetLng,
         'waktu_absen': formatWaktuCantik, 
         'status': statusKehadiran, 
-        'jenis_absen': jenisAbsen, // Menyimpan keterangan Masuk/Pulang
-        'photo_url': downloadUrl, 
+        'jenis_absen': jenisAbsen, 
+        'photo_url': downloadUrl, // Kalau upload gagal, ini cuma nyimpen teks kosong ""
       });
 
       if (!mounted) return;
@@ -245,7 +251,7 @@ class _AbsenPageState extends State<AbsenPage> {
       // Notifikasi Formal
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Presensi $jenisAbsen berhasil: $statusKehadiran'), 
-        backgroundColor: statusKehadiran == 'Terlambat' ? Colors.red : Colors.green,
+        backgroundColor: statusKehadiran == 'Terlambat' || statusKehadiran == 'Pulang Cepat' ? Colors.orange : Colors.green,
       ));
 
       // 8. Pindah Result
@@ -347,7 +353,7 @@ class _AbsenPageState extends State<AbsenPage> {
             ),
             const SizedBox(height: 30),
 
-            // Tombol Action - SEKARANG LANGSUNG DI BAWAH KAMERA
+            // Tombol Action 
             ElevatedButton(
               onPressed: _isLoadingLokasi ? null : _prosesAbsen,
               style: ElevatedButton.styleFrom(

@@ -23,6 +23,10 @@ class _FormIzinPageState extends State<FormIzinPage> {
   final TextEditingController _keteranganController = TextEditingController();
   XFile? _fotoBukti;
   bool _isLoading = false;
+  
+  // Variabel buat nampung sisa cuti dari database
+  int _sisaCuti = 0;
+  bool _isLoadingData = true;
 
   final List<String> _pilihanIzin = [
     'Sakit', 
@@ -31,6 +35,31 @@ class _FormIzinPageState extends State<FormIzinPage> {
     'Izin Masuk Terlambat', 
     'Izin Pulang Cepat'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tarikDataSisaCuti(); // Otomatis jalan pas halaman dibuka
+  }
+
+  // --- FUNGSI TARIK SISA CUTI KARYAWAN ---
+  Future<void> _tarikDataSisaCuti() async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        var snap = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: currentUser.email).limit(1).get();
+        if (snap.docs.isNotEmpty) {
+          setState(() {
+            // Tarik sisa cuti, kalau kosong/belum ada anggap aja 12
+            _sisaCuti = snap.docs.first.data()['sisa_cuti'] ?? 12;
+            _isLoadingData = false;
+          });
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoadingData = false);
+    }
+  }
 
   // --- FUNGSI AMBIL FOTO ---
   Future<void> _ambilFoto(ImageSource source) async {
@@ -78,16 +107,29 @@ class _FormIzinPageState extends State<FormIzinPage> {
   Future<void> _submitPengajuan() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validasi khusus "Sakit" wajib ada foto
+    // 1. Validasi khusus "Sakit" wajib ada foto
     if (_jenisIzin == 'Sakit' && _fotoBukti == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Surat Dokter wajib dilampirkan untuk pengajuan Sakit!'), backgroundColor: Colors.red));
       return;
     }
 
+    // 2. Validasi Anti-Ngelunjak (Cuti nggak boleh lebih dari sisa jatah)
+    if (_jenisIzin == 'Cuti Tahunan') {
+      int lamaCutiDiminta = _tanggalSelesai.difference(_tanggalMulai).inDays + 1;
+      if (lamaCutiDiminta > _sisaCuti) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Gagal! Anda mengajukan $lamaCutiDiminta hari, tapi sisa cuti tinggal $_sisaCuti hari.'), 
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ));
+        return; // Berhentiin proses pengajuan
+      }
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // 1. Tarik Data User (NRP & Nama)
+      // 3. Tarik Data User (NRP & Nama)
       User? currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception("Sesi login tidak ditemukan");
 
@@ -98,28 +140,37 @@ class _FormIzinPageState extends State<FormIzinPage> {
       String nrpSiswa = userData['nrp'] ?? '000000';
       String namaSiswa = userData['nama'] ?? 'Karyawan';
 
-      // 2. Upload Foto ke ImgBB (Kalau Ada)
-      String? downloadUrl;
+     // 4. Upload Foto ke ImgBB (Kalau Ada)
+      String? downloadUrl = ""; 
       if (_fotoBukti != null) {
-        final bytes = await _fotoBukti!.readAsBytes(); 
-        String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a'; // API Key lu yang kemaren
-        
-        var request = http.MultipartRequest('POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
-        request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: 'bukti_izin.jpg'));
-        
-        var response = await request.send();
-        var responseData = await response.stream.bytesToString();
-        var json = jsonDecode(responseData);
-        downloadUrl = json['data']['url']; 
+        try {
+          final bytes = await _fotoBukti!.readAsBytes(); 
+          String imgbbApiKey = 'MASUKIN_API_KEY_BARU_LU_DI_SINI'; 
+          
+          var request = http.MultipartRequest('POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
+          request.files.add(http.MultipartFile.fromBytes('image', bytes, filename: 'bukti_izin.jpg'));
+          
+          var response = await request.send();
+          var responseData = await response.stream.bytesToString();
+          var json = jsonDecode(responseData);
+          
+          if (response.statusCode == 200 && json['data'] != null) {
+            downloadUrl = json['data']['url']; 
+          }
+        } catch (e) {
+          // Kalau gagal upload gara-gara Internet Positif, biarin aja kosong.
+          // Aplikasi gak bakal crash, presentasi tetep jalan!
+          print("Upload gambar gagal karena jaringan, pakai URL kosong.");
+        }
       }
 
-      // 3. Format Waktu
+      // 5. Format Waktu
       String formatTgl(DateTime dt) => "${dt.day.toString().padLeft(2,'0')}-${dt.month.toString().padLeft(2,'0')}-${dt.year}";
       String formatJm(TimeOfDay jam) => "${jam.hour.toString().padLeft(2,'0')}:${jam.minute.toString().padLeft(2,'0')}";
       
       bool isWaktuSingkat = _jenisIzin.contains('Terlambat') || _jenisIzin.contains('Pulang');
 
-      // 4. Simpan ke Collection 'pengajuan_izin'
+      // 6. Simpan ke Collection 'pengajuan_izin'
       await FirebaseFirestore.instance.collection('pengajuan_izin').add({
         'nrp': nrpSiswa,
         'nama': namaSiswa,
@@ -129,13 +180,13 @@ class _FormIzinPageState extends State<FormIzinPage> {
         'tanggal_selesai': isWaktuSingkat ? formatTgl(_tanggalMulai) : formatTgl(_tanggalSelesai),
         'jam_izin': isWaktuSingkat ? formatJm(_jamIzin) : null,
         'bukti_url': downloadUrl,
-        'status_approval': 'Menunggu', // Default nunggu di-acc HR
+        'status_approval': 'Menunggu', 
         'created_at': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
       setState(() => _isLoading = false);
-      Navigator.pop(context); // Balik ke halaman sebelumnya
+      Navigator.pop(context); 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pengajuan berhasil dikirim! Menunggu persetujuan HRD.'), backgroundColor: Colors.green));
 
     } catch (e) {
@@ -156,7 +207,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
         backgroundColor: Colors.blueAccent,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
+      body: _isLoading || _isLoadingData
         ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -182,6 +233,35 @@ class _FormIzinPageState extends State<FormIzinPage> {
                     },
                   ),
                   const SizedBox(height: 20),
+
+                  // --- BANNER SISA CUTI (CUMA MUNCUL PAS PILIH CUTI) ---
+                  if (_jenisIzin == 'Cuti Tahunan') ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade200)
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange.shade700, size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Sisa Cuti Tahunan: $_sisaCuti Hari', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800, fontSize: 15)),
+                                const SizedBox(height: 4),
+                                Text('Pastikan rentang tanggal tidak melebihi sisa cuti Anda.', style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   // --- PILIH TANGGAL (DINAMIS) ---
                   if (!isWaktuSingkat) ...[
