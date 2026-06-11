@@ -17,9 +17,9 @@ class AbsenPage extends StatefulWidget {
 }
 
 class _AbsenPageState extends State<AbsenPage> {
-  final double _targetLat = -7.028953326986354;
-  final double _targetLng = 107.69808893907172;
-  final double _radiusMax = 50.0;
+  final double _targetLat = -7.028930157829252; 
+  final double _targetLng = 107.69787503822477;
+  final double _radiusMax = 100.0;
 
   String _lokasiSaatIni = 'Sedang mencari lokasi...';
   bool _isLoadingLokasi = true;

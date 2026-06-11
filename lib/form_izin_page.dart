@@ -391,49 +391,128 @@ class _FormIzinPageState extends State<FormIzinPage> {
     );
   }
 
-  Widget _buildDropdown() {
-    return DropdownButtonFormField<String>(
-      initialValue: _jenisIzin,
-      isExpanded: true,
-      menuMaxHeight: 300,
-      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-          color: _textSecondary, size: 22),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: _surfaceWhite,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _accentBlue, width: 1.5),
-        ),
+  void _showJenisPengajuanSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _surfaceWhite,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      style: const TextStyle(
-        color: _textPrimary,
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-        fontFamily: 'Inter',
-      ),
-      items: _pilihanIzin
-          .map((String val) =>
-              DropdownMenuItem(value: val, child: Text(val)))
-          .toList(),
-      onChanged: (val) {
-        if (val != null) {
-          setState(() {
-            _jenisIzin = val;
-            _fotoBukti = null;
-          });
-        }
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _borderColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Pilih Jenis Pengajuan',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(_pilihanIzin.length, (i) {
+                final item = _pilihanIzin[i];
+                final isSelected = item == _jenisIzin;
+                return Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _jenisIzin = item;
+                          _fotoBukti = null;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? _accentBlue
+                                      : _textPrimary,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(Icons.check_rounded,
+                                  color: _accentBlue, size: 22),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (i < _pilihanIzin.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child:
+                            Container(height: 1, color: _borderColor),
+                      ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
       },
+    );
+  }
+
+  Widget _buildDropdown() {
+    return GestureDetector(
+      onTap: _showJenisPengajuanSheet,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: _surfaceWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _jenisIzin,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: _textSecondary, size: 22),
+          ],
+        ),
+      ),
     );
   }
 

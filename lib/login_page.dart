@@ -1,10 +1,11 @@
-// login_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'main.dart'; // Import MainNavigation buat karyawan
-import 'hr_dashboard.dart'; // Import Dashboard HR
-import 'register_hr_page.dart'; // Import Halaman Registrasi
+import 'package:google_fonts/google_fonts.dart';
+import 'main.dart';
+import 'hr_dashboard.dart';
+import 'register_hr_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  static const Color _accentBlue = Color(0xFF2563EB);
+  static const Color _textPrimary = Color(0xFF1A1D26);
+  static const Color _textSecondary = Color(0xFF6B7280);
+  static const Color _textMuted = Color(0xFF9CA3AF);
+  static const Color _borderColor = Color(0xFFE5E7EB);
+  static const Color _bgOffWhite = Color(0xFFF4F6F9);
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,382 +37,491 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        // 1. Auth ke Firebase Pake Email & Password Asli
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+    setState(() => _isLoading = true);
 
-        // 2. Cek Role di Firestore buat misahin HR & Karyawan
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
-        
-        if (!mounted) return;
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-        if (userDoc.exists && userDoc.get('role') == 'hr') {
-          // Kalau HR, arahin ke Dashboard HR
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HRDashboard()));
-        } else {
-          // Kalau karyawan biasa, arahin ke MainNavigation
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainNavigation()));
-        }
-      } on FirebaseAuthException catch (e) {
-        if (mounted) {
-          String errorMessage = 'Email atau password salah!';
-          if (e.code == 'user-not-found') {
-            errorMessage = 'Email tidak terdaftar di sistem.';
-          } else if (e.code == 'wrong-password') {
-            errorMessage = 'Password yang Anda masukkan salah.';
-          }
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error jaringan: $e'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (userDoc.exists && userDoc.get('role') == 'hr') {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const HRDashboard()));
+      } else {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const MainNavigation()));
       }
-
+    } on FirebaseAuthException catch (e) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        String errorMessage = 'Email atau password salah.';
+        if (e.code == 'user-not-found') {
+          errorMessage = 'Email tidak terdaftar di sistem.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Password yang Anda masukkan salah.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Terjadi kesalahan jaringan.'),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isSmallScreen = screenSize.width < 600;
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue[800]!,
-              Colors.blue[600]!,
-              Colors.blue[400]!,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Logo/App Icon
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.fingerprint,
-                      size: 60,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Attendify',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Attendance Management System',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-
-                  // Login Card
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: isSmallScreen ? double.infinity : 450,
-                    ),
-                    child: Card(
-                      elevation: 20,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(isSmallScreen ? 24 : 32),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Selamat Datang! 👋',
-                                style: TextStyle(
-                                  fontSize: isSmallScreen ? 24 : 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Silakan login untuk melanjutkan',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Email Field
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  labelText: 'Email',
-                                  hintText: 'contoh@email.com',
-                                  prefixIcon: const Icon(Icons.email_outlined, color: Colors.blueAccent),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Email tidak boleh kosong';
-                                  }
-                                  if (!value.contains('@') || !value.contains('.')) {
-                                    return 'Masukkan email yang valid';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Password Field
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: !_isPasswordVisible,
-                                decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  hintText: 'Masukkan password Anda',
-                                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.blueAccent),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                                      color: Colors.grey[400],
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
-                                      });
-                                    },
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Password tidak boleh kosong';
-                                  }
-                                  if (value.length < 6) {
-                                    return 'Password minimal 6 karakter';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Remember Me & Forgot Password
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Checkbox(
-                                        value: _rememberMe,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _rememberMe = value!;
-                                          });
-                                        },
-                                        activeColor: Colors.blueAccent,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ),
-                                      Text(
-                                        'Ingat Saya',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Fitur akan segera hadir!'),
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'Lupa Password?',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.blue[700],
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-
-                              // Login Button
-                              ElevatedButton(
-                                onPressed: _isLoading ? null : _handleLogin,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 3,
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        ),
-                                      )
-                                    : const Text(
-                                        'LOGIN',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Biometric Login Option
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Fitur biometrik segera hadir!'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.fingerprint),
-                                label: const Text('Login dengan Sidik Jari'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.blueAccent,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  side: BorderSide(color: Colors.blue[200]!),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Register HR Link (Pengganti tulisan Demo Credentials)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterHRPage()));
-                    },
-                    child: Text(
-                      'Perusahaan Baru? Daftar HR Di Sini',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  Text(
-                    '© 2026 Attendify - All Rights Reserved',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.white.withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
+      backgroundColor: _bgOffWhite,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildLogo(),
+                const SizedBox(height: 40),
+                _buildLoginCard(),
+                const SizedBox(height: 24),
+                _buildRegisterLink(),
+                const SizedBox(height: 32),
+                _buildFooter(),
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Column(
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: _accentBlue.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.fingerprint_rounded,
+            size: 38,
+            color: _accentBlue,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Attendify',
+          style: GoogleFonts.inter(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: _textPrimary,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Attendance Management System',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: _textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginCard() {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 440),
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Welcome to Attendify',
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1A1D26),
+                letterSpacing: -0.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Silakan login untuk melanjutkan',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+
+            _buildEmailField(),
+            const SizedBox(height: 18),
+
+            _buildPasswordField(),
+            const SizedBox(height: 14),
+
+            _buildRememberRow(),
+            const SizedBox(height: 24),
+
+            _buildLoginButton(),
+            const SizedBox(height: 16),
+
+            _buildBiometricButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Email',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: _textPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: 'contoh@email.com',
+            hintStyle: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: _textMuted,
+            ),
+            prefixIcon: const Icon(Icons.email_outlined,
+                color: _textSecondary, size: 20),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _accentBlue, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFDC2626)),
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Email tidak boleh kosong';
+            }
+            if (!value.contains('@') || !value.contains('.')) {
+              return 'Masukkan email yang valid';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Password',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _passwordController,
+          obscureText: !_isPasswordVisible,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: _textPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Masukkan password Anda',
+            hintStyle: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: _textMuted,
+            ),
+            prefixIcon: const Icon(Icons.lock_outline_rounded,
+                color: _textSecondary, size: 20),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isPasswordVisible
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: _textMuted,
+                size: 20,
+              ),
+              onPressed: () {
+                setState(() => _isPasswordVisible = !_isPasswordVisible);
+              },
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _accentBlue, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFDC2626)),
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Password tidak boleh kosong';
+            }
+            if (value.length < 6) {
+              return 'Password minimal 6 karakter';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRememberRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: Checkbox(
+                value: _rememberMe,
+                onChanged: (value) {
+                  setState(() => _rememberMe = value!);
+                },
+                activeColor: _accentBlue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                side: const BorderSide(color: _borderColor),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Ingat Saya',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: _textSecondary,
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                'Fitur akan segera hadir.',
+                style: GoogleFonts.inter(fontSize: 13),
+              ),
+              backgroundColor: _accentBlue,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ));
+          },
+          child: Text(
+            'Lupa Password?',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: _accentBlue,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _handleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accentBlue,
+          disabledBackgroundColor: _accentBlue.withValues(alpha: 0.6),
+          elevation: 1,
+          shadowColor: _accentBlue.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2.5, color: Colors.white),
+              )
+            : Text(
+                'LOGIN',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildBiometricButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+              'Fitur biometrik segera hadir.',
+              style: GoogleFonts.inter(fontSize: 13),
+            ),
+            backgroundColor: _accentBlue,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
+        },
+        icon: const Icon(Icons.fingerprint_rounded, size: 20),
+        label: Text(
+          'Login dengan Sidik Jari',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _accentBlue,
+          side: const BorderSide(color: _borderColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterLink() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const RegisterHRPage()));
+      },
+      child: Text(
+        'Perusahaan Baru? Daftar HR Di Sini',
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: _accentBlue,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Text(
+      '\u00A9 2026 Attendify - Universitas Jenderal Achmad Yani',
+      style: GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: _textMuted,
+      ),
+      textAlign: TextAlign.center,
     );
   }
 }

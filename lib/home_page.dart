@@ -369,53 +369,129 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _showJenisPengajuanSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Pilih Jenis Pengajuan',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(_pilihanPengajuan.length, (i) {
+                final item = _pilihanPengajuan[i];
+                final isSelected = item == _selectedPengajuan;
+                return Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() => _selectedPengajuan = item);
+                        Navigator.pop(ctx);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item,
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  color: isSelected ? AppColors.blue : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(Icons.check_rounded, color: AppColors.blue, size: 22),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (i < _pilihanPengajuan.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(height: 1, color: AppColors.borderLight),
+                      ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildPengajuanCepat(BuildContext context) {
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardTitle(Icons.description_outlined, 'Pengajuan Cepat'),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedPengajuan.isEmpty ? null : _selectedPengajuan,
-            isExpanded: true,
-            menuMaxHeight: 300,
-            hint: Text(
-              'Pilih jenis pengajuan...',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textMuted,
+          GestureDetector(
+            onTap: _showJenisPengajuanSheet,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selectedPengajuan.isEmpty
+                          ? 'Pilih jenis pengajuan...'
+                          : _selectedPengajuan,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: _selectedPengajuan.isEmpty
+                            ? FontWeight.w500
+                            : FontWeight.w600,
+                        color: _selectedPengajuan.isEmpty
+                            ? AppColors.textMuted
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.textSecondary, size: 22),
+                ],
               ),
             ),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary, size: 22),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppColors.surface,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.blue, width: 1.5),
-              ),
-            ),
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
-            items: _pilihanPengajuan
-                .map((val) => DropdownMenuItem(value: val, child: Text(val)))
-                .toList(),
-            onChanged: (val) {
-              if (val != null) setState(() => _selectedPengajuan = val);
-            },
           ),
           const SizedBox(height: 14),
           SizedBox(
