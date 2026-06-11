@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendify — Modern Corporate SaaS UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root{
+    --bg:#f4f6f9;
+    --surface:#ffffff;
+    --text:#1a1d26;
+    --text-secondary:#6b7280;
+    --text-muted:#9ca3af;
+    --blue:#2563eb;
+    --blue-light:#eff6ff;
+    --blue-border:#bfdbfe;
+    --green:#16a34a;
+    --green-light:#f0fdf4;
+    --green-border:#bbf7d0;
+    --orange:#ea580c;
+    --orange-light:#fff7ed;
+    --orange-border:#fed7aa;
+    --red:#dc2626;
+    --red-light:#fef2f2;
+    --red-border:#fecaca;
+    --border:#e5e7eb;
+    --border-light:#f3f4f6;
+    --shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:0 4px 12px rgba(0,0,0,0.07),0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg:0 8px 24px rgba(0,0,0,0.08),0 4px 8px rgba(0,0,0,0.04);
+    --radius:16px;
+    --radius-sm:12px;
+    --radius-xs:10px;
+  }
+
+  html{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  body{
+    min-width:max-content;
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:32px;
+    padding:32px;
+    background:linear-gradient(135deg,#f0f4f8 0%,#e8edf5 50%,#f0f4f8 100%);
+  }
+
+  .phone-frame{
+    flex:0 0 390px;
+    height:844px;
+    border-radius:44px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-lg),0 0 0 1px rgba(0,0,0,0.03);
+    display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+  }
+
+  .phone-frame::before{
+    content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:120px;height:28px;background:#000;border-radius:0 0 16px 16px;z-index:50;
+  }
+
+  .status-bar{
+    height:48px;padding:14px 24px 0;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;font-weight:600;color:var(--text);
+    flex-shrink:0;
+  }
+  .status-bar .time{font-weight:700}
+  .status-bar .icons{display:flex;gap:4px;font-size:11px}
+
+  .content{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding:0 20px 90px;
+    scrollbar-width:none;
+  }
+  .content::-webkit-scrollbar{display:none}
+
+  .nav-bar{
+    position:absolute;bottom:0;left:0;right:0;
+    height:82px;padding:8px 0 20px;
+    display:flex;justify-content:space-around;align-items:center;
+    background:rgba(255,255,255,0.92);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-top:1px solid var(--border-light);
+    z-index:40;
+  }
+  .nav-item{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:10px;font-weight:600;color:var(--text-muted);
+    cursor:pointer;transition:color 0.2s;padding:4px 16px;
+  }
+  .nav-item.active{color:var(--blue)}
+  .nav-item svg{width:22px;height:22px}
+
+  .greeting-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .greeting-text h1{font-size:22px;font-weight:800;letter-spacing:-0.3px;color:var(--text);line-height:1.2}
+  .greeting-text p{font-size:13px;color:var(--text-secondary);margin-top:3px;font-weight:500}
+  .avatar-ring{
+    width:44px;height:44px;border-radius:14px;
+    background:linear-gradient(135deg,var(--blue),#1d4ed8);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:800;color:#fff;
+    box-shadow:0 2px 8px rgba(37,99,235,0.3);
+  }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+  }
+
+  .card-title{
+    font-size:14px;font-weight:700;color:var(--text);
+    margin-bottom:14px;display:flex;align-items:center;gap:8px;
+  }
+  .card-title svg{width:18px;height:18px;color:var(--blue)}
+
+  .cal-header{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:14px;
+  }
+  .cal-header h3{font-size:15px;font-weight:700;color:var(--text)}
+  .cal-nav{display:flex;gap:4px}
+  .cal-nav button{
+    width:28px;height:28px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    color:var(--text-secondary);font-size:12px;transition:all 0.2s;
+  }
+  .cal-nav button:hover{background:var(--blue-light);border-color:var(--blue-border)}
+
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin-bottom:6px}
+  .cal-weekdays span{font-size:11px;font-weight:600;color:var(--text-muted);padding:4px 0}
+
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+  .cal-day{
+    width:38px;height:38px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:600;color:var(--text-secondary);
+    margin:0 auto;transition:all 0.2s;cursor:pointer;
+  }
+  .cal-day:hover{background:var(--border-light)}
+  .cal-day.today{
+    background:var(--blue);color:#fff;
+    box-shadow:0 2px 8px rgba(37,99,235,0.35);
+  }
+  .cal-day.holiday{color:var(--orange);font-weight:700}
+  .cal-day.dimmed{color:var(--text-muted);opacity:0.4}
+
+  .stats-row{display:flex;gap:10px;margin-top:14px}
+  .stat-chip{
+    flex:1;display:flex;align-items:center;gap:8px;
+    padding:10px 12px;border-radius:var(--radius-sm);
+    border:1px solid var(--border-light);
+  }
+  .stat-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .stat-chip .num{font-size:18px;font-weight:800;line-height:1}
+  .stat-chip .label{font-size:11px;color:var(--text-secondary);font-weight:500}
+  .stat-chip .info{display:flex;flex-direction:column;gap:2px}
+
+  .dropdown-wrap{position:relative}
+  .dropdown-trigger{
+    width:100%;padding:14px 16px;
+    border-radius:var(--radius-sm);
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    font-family:inherit;font-size:14px;font-weight:500;color:var(--text);
+    display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;transition:border-color 0.2s;
+  }
+  .dropdown-trigger:hover,.dropdown-trigger.open{border-color:var(--blue)}
+  .dropdown-trigger .placeholder{color:var(--text-muted)}
+
+  .dropdown-list{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    box-shadow:var(--shadow-lg);
+    z-index:20;overflow:hidden;
+  }
+  .dropdown-item{
+    padding:12px 16px;font-size:14px;font-weight:500;color:var(--text);
+    cursor:pointer;transition:background 0.15s;
+    display:flex;align-items:center;gap:10px;
+    border-bottom:1px solid var(--border-light);
+  }
+  .dropdown-item:last-child{border-bottom:none}
+  .dropdown-item:hover{background:var(--blue-light)}
+  .dropdown-item .icon{font-size:16px;width:24px;text-align:center}
+
+  .btn-primary{
+    width:100%;padding:15px 24px;border-radius:var(--radius-sm);
+    background:var(--blue);color:#fff;border:none;
+    font-family:inherit;font-size:15px;font-weight:700;
+    cursor:pointer;transition:all 0.2s;
+    box-shadow:0 2px 8px rgba(37,99,235,0.3);
+  }
+  .btn-primary:hover{background:#1d4ed8;box-shadow:0 4px 14px rgba(37,99,235,0.4);transform:translateY(-1px)}
+
+  .section-title{
+    font-size:16px;font-weight:700;color:var(--text);
+    margin:20px 0 12px;
+  }
+
+  .quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .quick-action{
+    padding:16px;border-radius:var(--radius-sm);
+    border:1px solid var(--border-light);
+    background:var(--surface);
+    cursor:pointer;transition:all 0.2s;
+    display:flex;align-items:center;gap:10px;
+  }
+  .quick-action:hover{border-color:var(--blue-border);box-shadow:var(--shadow)}
+  .quick-action .qa-icon{
+    width:40px;height:40px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;flex-shrink:0;
+  }
+  .quick-action .qa-text{font-size:13px;font-weight:600;color:var(--text)}
+
+  .camera-area{
+    width:240px;height:240px;border-radius:24px;margin:0 auto 20px;
+    background:linear-gradient(135deg,#1a1d26,#2d3040);
+    position:relative;overflow:hidden;
+    box-shadow:var(--shadow-lg);
+  }
+  .camera-area::after{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(circle,transparent 35%,rgba(0,0,0,0.3) 100%);
+  }
+  .face-guide{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:120px;height:150px;
+    border:2.5px solid rgba(255,255,255,0.5);
+    border-radius:50%;z-index:2;
+  }
+  .face-guide::before{
+    content:'Position your face';position:absolute;bottom:-28px;left:50%;
+    transform:translateX(-50%);white-space:nowrap;
+    font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);
+  }
+  .camera-corner{position:absolute;width:24px;height:24px;z-index:3}
+  .camera-corner.tl{top:16px;left:16px;border-top:3px solid #fff;border-left:3px solid #fff;border-radius:4px 0 0 0}
+  .camera-corner.tr{top:16px;right:16px;border-top:3px solid #fff;border-right:3px solid #fff;border-radius:0 4px 0 0}
+  .camera-corner.bl{bottom:16px;left:16px;border-bottom:3px solid #fff;border-left:3px solid #fff;border-radius:0 0 0 4px}
+  .camera-corner.br{bottom:16px;right:16px;border-bottom:3px solid #fff;border-right:3px solid #fff;border-radius:0 0 4px 0}
+
+  .scan-line{
+    position:absolute;top:0;left:0;right:0;height:2px;z-index:4;
+    background:linear-gradient(90deg,transparent,var(--blue),transparent);
+    box-shadow:0 0 12px rgba(37,99,235,0.6);
+    animation:scanMove 2.5s ease-in-out infinite;
+  }
+  @keyframes scanMove{0%{top:15%}50%{top:80%}100%{top:15%}}
+
+  .location-card{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 18px;border-radius:var(--radius-sm);
+    background:var(--green-light);border:1px solid var(--green-border);
+    margin-bottom:20px;
+  }
+  .location-card .loc-icon{
+    width:36px;height:36px;border-radius:10px;
+    background:rgba(22,163,74,0.12);
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+  }
+  .location-card .loc-text{font-size:13px;font-weight:600;color:var(--green)}
+  .location-card .loc-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+  .btn-presensi{
+    width:100%;padding:17px 24px;border-radius:var(--radius-sm);
+    background:linear-gradient(135deg,var(--blue),#1d4ed8);
+    color:#fff;border:none;
+    font-family:inherit;font-size:16px;font-weight:700;
+    cursor:pointer;transition:all 0.2s;
+    box-shadow:0 4px 14px rgba(37,99,235,0.35);
+    letter-spacing:0.3px;
+  }
+  .btn-presensi:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,99,235,0.45)}
+
+  .profile-header{
+    text-align:center;padding:24px 0 20px;
+  }
+  .profile-avatar{
+    width:80px;height:80px;border-radius:24px;margin:0 auto 14px;
+    background:linear-gradient(135deg,var(--blue),#7c3aed);
+    display:flex;align-items:center;justify-content:center;
+    font-size:32px;font-weight:900;color:#fff;
+    box-shadow:0 4px 16px rgba(37,99,235,0.3);
+  }
+  .profile-header h2{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.2px}
+  .profile-header .role{
+    font-size:13px;color:var(--text-secondary);font-weight:500;margin-top:4px;
+  }
+
+  .info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+  .info-cell{
+    padding:14px 10px;border-radius:var(--radius-sm);
+    border:1px solid var(--border-light);
+    text-align:center;
+  }
+  .info-cell .label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+  .info-cell .value{font-size:14px;font-weight:700;color:var(--text)}
+
+  .menu-list{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .menu-item{
+    display:flex;align-items:center;gap:14px;
+    padding:16px 18px;cursor:pointer;transition:background 0.15s;
+    border-bottom:1px solid var(--border-light);
+  }
+  .menu-item:last-child{border-bottom:none}
+  .menu-item:hover{background:var(--border-light)}
+  .menu-item .mi-icon{
+    width:36px;height:36px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;flex-shrink:0;
+  }
+  .menu-item .mi-text{flex:1;font-size:14px;font-weight:600;color:var(--text)}
+  .menu-item .mi-arrow{color:var(--text-muted);font-size:14px}
+  .menu-item.logout .mi-text{color:var(--red)}
+  .menu-item.logout .mi-icon{background:var(--red-light)}
+
+  .label-tag{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:3px 10px;border-radius:8px;
+    font-size:11px;font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== SCREEN 1: HOME DASHBOARD ===================== -->
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">10:16</span>
+    <span class="icons">●●●● 📶 🔋</span>
+  </div>
+
+  <div class="content">
+    <div class="greeting-row">
+      <div class="greeting-text">
+        <h1>Hello, Bima 👋</h1>
+        <p>Universitas Jenderal Achmad Yani</p>
+      </div>
+      <div class="avatar-ring">B</div>
+    </div>
+
+    <!-- Widget 1: Kalender -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Kalender Kehadiran
+      </div>
+      <div class="cal-header">
+        <h3>Juni 2026</h3>
+        <div class="cal-nav">
+          <button>◀</button>
+          <button>▶</button>
+        </div>
+      </div>
+      <div class="cal-weekdays">
+        <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+      </div>
+      <div class="cal-days">
+        <div class="cal-day dimmed">26</div><div class="cal-day dimmed">27</div><div class="cal-day dimmed">28</div><div class="cal-day dimmed">29</div><div class="cal-day dimmed">30</div><div class="cal-day dimmed">31</div>
+        <div class="cal-day">1</div>
+        <div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div>
+        <div class="cal-day holiday">6</div><div class="cal-day holiday">7</div>
+        <div class="cal-day">8</div><div class="cal-day">9</div>
+        <div class="cal-day">10</div>
+        <div class="cal-day today">11</div>
+        <div class="cal-day">12</div>
+        <div class="cal-day holiday">13</div><div class="cal-day holiday">14</div>
+        <div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div>
+        <div class="cal-day holiday">20</div><div class="cal-day holiday">21</div>
+        <div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day">26</div>
+        <div class="cal-day holiday">27</div><div class="cal-day holiday">28</div>
+        <div class="cal-day">29</div><div class="cal-day">30</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-chip">
+          <div class="dot" style="background:var(--green)"></div>
+          <div class="info">
+            <div class="num" style="color:var(--green)">11</div>
+            <div class="label">Hadir</div>
+          </div>
+        </div>
+        <div class="stat-chip">
+          <div class="dot" style="background:var(--orange)"></div>
+          <div class="info">
+            <div class="num" style="color:var(--orange)">2</div>
+            <div class="label">Terlambat</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget 2: Pengajuan Cepat -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Pengajuan Cepat
+      </div>
+      <div class="dropdown-wrap" id="dropdown1">
+        <div class="dropdown-trigger" onclick="toggleDropdown('dropdown1')">
+          <span class="placeholder">Pilih jenis pengajuan...</span>
+          <span style="color:var(--text-muted);font-size:12px">▼</span>
+        </div>
+        <div class="dropdown-list" id="dropdown1-list" style="display:none">
+          <div class="dropdown-item" onclick="selectItem('dropdown1','Izin','📋')"><span class="icon">📋</span> Izin</div>
+          <div class="dropdown-item" onclick="selectItem('dropdown1','Sakit','🤒')"><span class="icon">🤒</span> Sakit</div>
+          <div class="dropdown-item" onclick="selectItem('dropdown1','Cuti','🏖️')"><span class="icon">🏖️</span> Cuti</div>
+          <div class="dropdown-item" onclick="selectItem('dropdown1','Izin Pulang Cepat','🏠')"><span class="icon">🏠</span> Izin Pulang Cepat</div>
+          <div class="dropdown-item" onclick="selectItem('dropdown1','Izin Masuk Terlambat','⏰')"><span class="icon">⏰</span> Izin Masuk Terlambat</div>
+          <div class="dropdown-item" onclick="selectItem('dropdown1','Lembur','🌙')"><span class="icon">🌙</span> Lembur</div>
+        </div>
+      </div>
+      <div style="height:14px"></div>
+      <button class="btn-primary">Ajukan Sekarang</button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-title">Aksi Cepat</div>
+    <div class="quick-actions">
+      <div class="quick-action">
+        <div class="qa-icon" style="background:var(--blue-light)">📷</div>
+        <span class="qa-text">Absen</span>
+      </div>
+      <div class="quick-action">
+        <div class="qa-icon" style="background:var(--orange-light)">📝</div>
+        <span class="qa-text">Riwayat</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+      Absensi
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN 2: ABSENSI ===================== -->
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">10:16</span>
+    <span class="icons">●●●● 📶 🔋</span>
+  </div>
+
+  <div class="content" style="display:flex;flex-direction:column;align-items:center">
+    <div style="width:100%;margin-bottom:4px">
+      <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.3px">Presensi Kehadiran</h1>
+      <p style="font-size:13px;color:var(--text-secondary);margin-top:3px;font-weight:500">Rabu, 11 Juni 2026</p>
+    </div>
+
+    <div style="height:16px"></div>
+
+    <div class="camera-area">
+      <div class="camera-corner tl"></div>
+      <div class="camera-corner tr"></div>
+      <div class="camera-corner bl"></div>
+      <div class="camera-corner br"></div>
+      <div class="face-guide"></div>
+      <div class="scan-line"></div>
+      <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:6px">
+        <span class="label-tag" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8)">Front Camera</span>
+      </div>
+    </div>
+
+    <div class="location-card" style="width:100%">
+      <div class="loc-icon">📍</div>
+      <div>
+        <div class="loc-text">Di dalam radius kampus</div>
+        <div class="loc-sub">Akurasi: GPS OK • Jarak: 12m dari titik absen</div>
+      </div>
+    </div>
+
+    <div class="card" style="width:100%;padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+        <span style="font-size:13px;font-weight:700;color:var(--text)">Status Verifikasi</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;padding:10px;border-radius:10px;background:var(--green-light);border:1px solid var(--green-border);text-align:center">
+          <div style="font-size:16px;margin-bottom:2px">📍</div>
+          <div style="font-size:11px;font-weight:600;color:var(--green)">Lokasi ✓</div>
+        </div>
+        <div style="flex:1;padding:10px;border-radius:10px;background:var(--green-light);border:1px solid var(--green-border);text-align:center">
+          <div style="font-size:16px;margin-bottom:2px">📷</div>
+          <div style="font-size:11px;font-weight:600;color:var(--green)">Kamera ✓</div>
+        </div>
+        <div style="flex:1;padding:10px;border-radius:10px;background:var(--blue-light);border:1px solid var(--blue-border);text-align:center">
+          <div style="font-size:16px;margin-bottom:2px">⏳</div>
+          <div style="font-size:11px;font-weight:600;color:var(--blue)">Menunggu</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div style="width:100%">
+      <button class="btn-presensi">KIRIM PRESENSI</button>
+    </div>
+
+    <div style="height:8px"></div>
+    <p style="font-size:11px;color:var(--text-muted);text-align:center">Pastikan wajah terlihat jelas dan Anda berada di area kampus</p>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+      Absensi
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN 3: PROFILE ===================== -->
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">10:16</span>
+    <span class="icons">●●●● 📶 🔋</span>
+  </div>
+
+  <div class="content">
+    <div class="profile-header">
+      <div class="profile-avatar">BP</div>
+      <h2>Bima Pratama Putra</h2>
+      <div class="role">Undergraduate Student / Employee</div>
+      <div style="margin-top:10px;display:flex;justify-content:center;gap:6px">
+        <span class="label-tag" style="background:var(--blue-light);color:var(--blue)">● Active</span>
+        <span class="label-tag" style="background:var(--green-light);color:var(--green)">Verified</span>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-cell">
+        <div class="label">NRP</div>
+        <div class="value">10224048</div>
+      </div>
+      <div class="info-cell">
+        <div class="label">Email</div>
+        <div class="value" style="font-size:11px">bima@std.unjani.ac.id</div>
+      </div>
+      <div class="info-cell">
+        <div class="label">Divisi</div>
+        <div class="value">TI - 05</div>
+      </div>
+    </div>
+
+    <!-- Statistik Mini -->
+    <div class="card" style="padding:16px">
+      <div class="card-title" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Statistik Bulan Ini
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;text-align:center;padding:12px;border-radius:12px;background:var(--green-light);border:1px solid var(--green-border)">
+          <div style="font-size:22px;font-weight:800;color:var(--green)">11</div>
+          <div style="font-size:11px;color:var(--text-secondary);font-weight:500">Hadir</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:12px;border-radius:12px;background:var(--orange-light);border:1px solid var(--orange-border)">
+          <div style="font-size:22px;font-weight:800;color:var(--orange)">2</div>
+          <div style="font-size:11px;color:var(--text-secondary);font-weight:500">Terlambat</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:12px;border-radius:12px;background:var(--blue-light);border:1px solid var(--blue-border)">
+          <div style="font-size:22px;font-weight:800;color:var(--blue)">0</div>
+          <div style="font-size:11px;color:var(--text-secondary);font-weight:500">Izin</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu List -->
+    <div class="card-title" style="margin:20px 0 12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008.46 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.46a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 008.46 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 8.46a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Pengaturan
+    </div>
+    <div class="menu-list">
+      <div class="menu-item">
+        <div class="mi-icon" style="background:var(--blue-light)">📋</div>
+        <span class="mi-text">Riwayat Presensi</span>
+        <span class="mi-arrow">›</span>
+      </div>
+      <div class="menu-item">
+        <div class="mi-icon" style="background:var(--orange-light)">📄</div>
+        <span class="mi-text">Slip Gaji / Dokumen</span>
+        <span class="mi-arrow">›</span>
+      </div>
+      <div class="menu-item">
+        <div class="mi-icon" style="background:var(--blue-light)">🔒</div>
+        <span class="mi-text">Ubah Password</span>
+        <span class="mi-arrow">›</span>
+      </div>
+      <div class="menu-item logout">
+        <div class="mi-icon">🚪</div>
+        <span class="mi-text">Log Out</span>
+        <span class="mi-arrow">›</span>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+    <p style="font-size:11px;color:var(--text-muted);text-align:center">Attendify v1.0.0 • LPKIA Bandung</p>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+      Home
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+      Absensi
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleDropdown(id){
+  const list=document.getElementById(id+'-list');
+  const trigger=document.querySelector('#'+id+' .dropdown-trigger');
+  const isOpen=list.style.display==='block';
+  document.querySelectorAll('.dropdown-list').forEach(l=>l.style.display='none');
+  document.querySelectorAll('.dropdown-trigger').forEach(t=>t.classList.remove('open'));
+  if(!isOpen){
+    list.style.display='block';
+    trigger.classList.add('open');
+  }
+}
+function selectItem(id,text,icon){
+  const trigger=document.querySelector('#'+id+' .dropdown-trigger');
+  trigger.innerHTML='<span style="display:flex;align-items:center;gap:8px"><span>'+icon+'</span> '+text+'</span><span style="color:var(--text-muted);font-size:12px">▼</span>';
+  document.getElementById(id+'-list').style.display='none';
+  trigger.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.dropdown-wrap')){
+    document.querySelectorAll('.dropdown-list').forEach(l=>l.style.display='none');
+    document.querySelectorAll('.dropdown-trigger').forEach(t=>t.classList.remove('open'));
+  }
+});
+</script>
+</body>
+</html>

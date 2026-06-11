@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Wajib tambah ini buat deteksi user
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'main.dart';
 import 'login_page.dart';
+import 'history_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -16,26 +19,37 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Konfirmasi Logout'),
-          content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Konfirmasi Logout',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17),
+          ),
+          content: Text(
+            'Apakah Anda yakin ingin keluar dari aplikasi?',
+            style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Tidak', style: TextStyle(color: Colors.grey)),
+              child: Text(
+                'Batal',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              ),
             ),
             TextButton(
               onPressed: () async {
-                // Proses logout dari Firebase beneran
                 await FirebaseAuth.instance.signOut();
                 if (!context.mounted) return;
-                
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
-                  (Route<dynamic> route) => false, // Hapus semua riwayat halaman biar ga bisa di-back
+                  (Route<dynamic> route) => false,
                 );
               },
-              child: const Text('Ya', style: TextStyle(color: Colors.red)),
+              child: Text(
+                'Logout',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red),
+              ),
             ),
           ],
         );
@@ -43,212 +57,468 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String title, String subtitle, Color color) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: color),
-      ),
-      title: Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+  @override
+  Widget build(BuildContext context) {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: currentUser == null
+          ? Center(
+              child: Text(
+                'Sesi telah habis, silakan login ulang.',
+                style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary),
+              ),
+            )
+          : FutureBuilder<QuerySnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('users')
+                  .where('email', isEqualTo: currentUser.email)
+                  .limit(1)
+                  .get(),
+              builder: (context, userSnapshot) {
+                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.blue));
+                }
+                if (!userSnapshot.hasData || userSnapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Biodata tidak ditemukan.',
+                      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary),
+                    ),
+                  );
+                }
+
+                var userData = userSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                String nama = userData['nama'] ?? 'Karyawan';
+                String role = userData['role'] ?? 'Karyawan';
+                String nrp = userData['nrp'] ?? '-';
+                String email = currentUser.email ?? '-';
+
+                return SafeArea(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildProfileHeader(nama, role),
+                        const SizedBox(height: 20),
+                        _buildInfoGrid(nrp, email),
+                        const SizedBox(height: 16),
+                        _buildStatCard(nrp),
+                        const SizedBox(height: 20),
+                        _buildSectionTitle(Icons.settings_outlined, 'Pengaturan'),
+                        const SizedBox(height: 12),
+                        _buildMenuList(),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: Text(
+                            'Attendify v1.0.0 • Universitas Jenderal Achmad Yani',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color) {
+  Widget _buildProfileHeader(String nama, String role) {
+    String initials = nama.isNotEmpty
+        ? nama.split('').take(2).join().toUpperCase()
+        : 'BP';
+
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.blue, Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.blue.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: GoogleFonts.inter(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            nama,
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            role == 'karyawan' ? 'Undergraduate Student / Employee' : role,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildBadge('Active', AppColors.blue, AppColors.blueLight),
+              const SizedBox(width: 6),
+              _buildBadge('Verified', AppColors.green, AppColors.greenLight),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color color, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoGrid(String nrp, String email) {
+    return Row(
+      children: [
+        Expanded(child: _buildInfoCell('NRP', nrp)),
+        const SizedBox(width: 10),
+        Expanded(child: _buildInfoCell('Email', email)),
+        const SizedBox(width: 10),
+        Expanded(child: _buildInfoCell('Divisi', 'TI - 05')),
+      ],
+    );
+  }
+
+  Widget _buildInfoCell(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String nrp) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.show_chart_rounded, size: 18, color: AppColors.blue),
+              const SizedBox(width: 8),
+              Text(
+                'Statistik Bulan Ini',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('absensi')
+                .where('nrp', isEqualTo: nrp)
+                .snapshots(),
+            builder: (context, snapshot) {
+              int totalHadir = 0;
+              int totalTerlambat = 0;
+              int totalIzin = 0;
+
+              if (snapshot.hasData) {
+                for (var doc in snapshot.data!.docs) {
+                  Map<String, dynamic> dataAbsen = doc.data() as Map<String, dynamic>;
+                  String status = dataAbsen['status'] ?? '';
+                  String waktuAbsen = dataAbsen['waktu_absen'] ?? '';
+
+                  try {
+                    List<String> splitSpasi = waktuAbsen.split(' ');
+                    if (splitSpasi.isNotEmpty) {
+                      List<String> splitStrip = splitSpasi[0].split('-');
+                      if (splitStrip.length == 3) {
+                        int docBulan = int.parse(splitStrip[1]);
+                        int docTahun = int.parse(splitStrip[2]);
+
+                        if (docBulan == DateTime.now().month && docTahun == DateTime.now().year) {
+                          if (status.toLowerCase().contains('tepat')) {
+                            totalHadir++;
+                          } else if (status.toLowerCase().contains('telat') ||
+                              status.toLowerCase().contains('terlambat')) {
+                            totalHadir++;
+                            totalTerlambat++;
+                          }
+                        }
+                      }
+                    }
+                  } catch (_) {}
+                }
+              }
+
+              return Row(
+                children: [
+                  _buildStatCell(AppColors.green, AppColors.greenLight, '$totalHadir', 'Hadir'),
+                  const SizedBox(width: 10),
+                  _buildStatCell(AppColors.orange, AppColors.orangeLight, '$totalTerlambat', 'Terlambat'),
+                  const SizedBox(width: 10),
+                  _buildStatCell(AppColors.blue, AppColors.blueLight, '$totalIzin', 'Izin'),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCell(Color color, Color bg, String value, String label) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+            Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Ambil data user yang lagi aktif login di hape ini
-    User? currentUser = FirebaseAuth.instance.currentUser;
+  Widget _buildSectionTitle(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.blue),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      // Kita bungkus pake FutureBuilder buat narik biodata dia dari Firestore
-      body: currentUser == null 
-        ? const Center(child: Text('Sesi telah habis, silakan login ulang.'))
-        : FutureBuilder<QuerySnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('users')
-                .where('email', isEqualTo: currentUser.email)
-                .limit(1)
-                .get(),
-            builder: (context, userSnapshot) {
-              if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (!userSnapshot.hasData || userSnapshot.data!.docs.isEmpty) {
-                return const Center(child: Text('Biodata tidak ditemukan.'));
-              }
-
-              // Tarik datanya jadi variabel
-              var userData = userSnapshot.data!.docs.first.data() as Map<String, dynamic>;
-              String nama = userData['nama'] ?? 'Karyawan';
-              String role = userData['role'] ?? 'Karyawan';
-              String nrp = userData['nrp'] ?? '-';
-              String email = currentUser.email ?? '-';
-
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Header Melengkung
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.only(top: 60, bottom: 30),
-                      decoration: const BoxDecoration(
-                        color: Colors.blueAccent,
-                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-                      ),
-                      child: Column(
-                        children: [
-                      Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: CircleAvatar(
-                              radius: 45,
-                              backgroundColor: Colors.blue[100],
-                              child: Text(
-                                nama.isNotEmpty ? nama[0].toUpperCase() : '?',
-                                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          // NAMA DINAMIS
-                          Text(nama, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                          // ROLE DINAMIS + KAMPUS
-                          Text('${role.toUpperCase()} • SIMAYA', style: const TextStyle(fontSize: 14, color: Colors.white70)),
-                        ],
-                      ),
-                    ),
-                    
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Statistik Bulan Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
-                          
-                          // STREAM BUILDER ABSENSI PAKE NRP DINAMIS
-                          StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('absensi')
-                                .where('nrp', isEqualTo: nrp) // NRP nya dapet dari Firebase langsung!
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(child: CircularProgressIndicator());
-                              }
-
-                              int totalHadir = 0;
-                              int totalTerlambat = 0;
-
-                              if (snapshot.hasData) {
-                                for (var doc in snapshot.data!.docs) {
-                                  Map<String, dynamic> dataAbsen = doc.data() as Map<String, dynamic>;
-                                  String status = dataAbsen['status'] ?? '';
-                                  String waktuAbsen = dataAbsen['waktu_absen'] ?? '';
-                                  
-                                  // Opsional: Cek apakah absen ini di bulan & tahun yang sama (kayak fitur HR sebelumnya)
-                                  // Biar beneran "Statistik Bulan Ini"
-                                  try {
-                                    List<String> splitSpasi = waktuAbsen.split(' '); 
-                                    if (splitSpasi.isNotEmpty) {
-                                      List<String> splitStrip = splitSpasi[0].split('-'); 
-                                      if (splitStrip.length == 3) {
-                                        int docBulan = int.parse(splitStrip[1]);
-                                        int docTahun = int.parse(splitStrip[2]);
-                                        
-                                        if (docBulan == DateTime.now().month && docTahun == DateTime.now().year) {
-                                          if (status.toLowerCase().contains('tepat')) {
-                                            totalHadir++;
-                                          } else if (status.toLowerCase().contains('telat') || status.toLowerCase().contains('terlambat')) {
-                                            totalHadir++; // Terlambat juga diitung hadir dong
-                                            totalTerlambat++;
-                                          }
-                                        }
-                                      }
-                                    }
-                                  } catch(e) {
-                                    debugPrint("Format tanggal salah");
-                                  }
-                                }
-                              }
-
-                              return Row(
-                                children: [
-                                  _buildStatCard('Hadir', '$totalHadir', Colors.green),
-                                  const SizedBox(width: 16),
-                                  _buildStatCard('Terlambat', '$totalTerlambat', Colors.orange),
-                                ],
-                              );
-                            },
-                          ),
-                          
-                          const SizedBox(height: 30),
-                          const Text('Informasi Akun', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
-                            ),
-                            child: Column(
-                              children: [
-                                // EMAIL DINAMIS
-                                _buildInfoTile(Icons.email, 'Email', email, Colors.blue),
-                                const Divider(height: 1),
-                                _buildInfoTile(Icons.badge, 'NRP', nrp, Colors.purple), // Gua ganti Fingerprint jadi NRP biar lebih fungsional
-                                const Divider(height: 1),
-                                _buildInfoTile(Icons.lock_reset, 'Password', 'Ubah Password', Colors.orange),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _handleLogout,
-                              icon: const Icon(Icons.logout, color: Colors.redAccent),
-                              label: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red[50],
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
+  Widget _buildMenuList() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          _buildMenuItem(
+            icon: Icons.history_rounded,
+            iconBg: AppColors.blueLight,
+            iconColor: AppColors.blue,
+            title: 'Riwayat Presensi',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryPage())),
+          ),
+          _buildDivider(),
+          _buildMenuItem(
+            icon: Icons.description_outlined,
+            iconBg: AppColors.orangeLight,
+            iconColor: AppColors.orange,
+            title: 'Slip Gaji / Dokumen',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Fitur segera hadir.'),
+                backgroundColor: AppColors.blue,
+              ));
             },
           ),
+          _buildDivider(),
+          _buildMenuItem(
+            icon: Icons.lock_outline_rounded,
+            iconBg: AppColors.blueLight,
+            iconColor: AppColors.blue,
+            title: 'Ubah Password',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Fitur segera hadir.'),
+                backgroundColor: AppColors.blue,
+              ));
+            },
+          ),
+          _buildDivider(),
+          _buildMenuItem(
+            icon: Icons.logout_rounded,
+            iconBg: AppColors.redLight,
+            iconColor: AppColors.red,
+            title: 'Log Out',
+            isLogout: true,
+            onTap: _handleLogout,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+    bool isLogout = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isLogout ? AppColors.red : AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Container(height: 1, color: AppColors.borderLight),
     );
   }
 }

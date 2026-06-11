@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Wajib buat ngebaca user login
-import 'history_page.dart';
-import 'absen_page.dart'; // Wajib buat navigasi tombol check in/out
-import 'services/holiday_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'main.dart';
+import 'absen_page.dart';
 import 'form_izin_page.dart';
+import 'history_page.dart';
+import 'services/holiday_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,291 +17,67 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Fungsi buat ngubah "07-06-2026 08:30" jadi nama bulan
-  String _formatTanggalCantik() {
-    final List<String> namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    final List<String> namaHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-    
-    DateTime now = DateTime.now();
-    return '${namaHari[now.weekday - 1]}, ${now.day} ${namaBulan[now.month - 1]} ${now.year}';
-  }
+  String _selectedPengajuan = '';
+
+  static const List<String> _pilihanPengajuan = [
+    'Izin',
+    'Sakit',
+    'Cuti',
+    'Izin Pulang Cepat',
+    'Izin Masuk Terlambat',
+    'Lembur',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-
+    final User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       return const Scaffold(body: Center(child: Text('Silakan login terlebih dahulu.')));
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      // Bungkus pakai FutureBuilder biar dapet Profil & NRP-nya dulu
+      backgroundColor: AppColors.bg,
       body: FutureBuilder<QuerySnapshot>(
-        future: FirebaseFirestore.instance.collection('users').where('email', isEqualTo: currentUser.email).limit(1).get(),
+        future: FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser.email)
+            .limit(1)
+            .get(),
         builder: (context, userSnap) {
           if (userSnap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.blue));
           }
 
-          String namaSiswa = "Karyawan";
-          String nrpSiswa = "";
-          
+          String namaSiswa = 'Karyawan';
+          String nrpSiswa = '';
           if (userSnap.hasData && userSnap.data!.docs.isNotEmpty) {
             var userData = userSnap.data!.docs.first.data() as Map<String, dynamic>;
             namaSiswa = userData['nama'] ?? 'Karyawan';
             nrpSiswa = userData['nrp'] ?? '';
           }
 
-          // Ambil nama panggilan (kata pertama)
           String namaPanggilan = namaSiswa.split(' ').first;
 
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- HEADER PROFIL DINAMIS ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hello, $namaPanggilan 👋',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'LPKIA Bandung', 
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        decoration: BoxDecoration(color: Colors.blue[50], shape: BoxShape.circle),
-                        child: IconButton(
-                          icon: const Icon(Icons.notifications_outlined),
-                          color: Colors.blueAccent,
-                          onPressed: () {},
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // --- TANGGAL HARI INI ---
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 20, color: Colors.blueAccent),
-                        const SizedBox(width: 12),
-                        Text(
-                          _formatTanggalCantik(),
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.blue[800]),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // --- KARTU SHORTCUT ABSEN & IZIN ---
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildCheckCard(
-                          title: 'Absen',
-                          time: 'Kamera',
-                          icon: Icons.camera_alt_rounded,
-                          color: Colors.blueAccent,
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const AbsenPage()));
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildCheckCard(
-                          title: 'Pengajuan',
-                          time: 'Izin / Cuti',
-                          icon: Icons.edit_document,
-                          color: Colors.orange,
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const FormIzinPage()));
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // --- STATISTIK ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Kehadiran Bulan Ini', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800])),
-                      TextButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryPage())),
-                        child: const Text('Detail', style: TextStyle(color: Colors.blueAccent)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Tarik data statistik spesifik NRP lu
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance.collection('absensi').where('nrp', isEqualTo: nrpSiswa).snapshots(),
-                    builder: (context, snapshot) {
-                      int hadir = 0;
-                      int terlambat = 0;
-
-                      if (snapshot.hasData) {
-                        for (final doc in snapshot.data!.docs) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          final status = (data['status'] ?? '').toString().toLowerCase();
-                          final waktuAbsen = (data['waktu_absen'] ?? '').toString();
-                          
-                          // Filter manual bulan ini (karena formatnya "DD-MM-YYYY")
-                          try {
-                            List<String> parts = waktuAbsen.split(' ')[0].split('-');
-                            int bln = int.parse(parts[1]);
-                            int thn = int.parse(parts[2]);
-                            
-                            if (bln == DateTime.now().month && thn == DateTime.now().year) {
-                              if (status.contains('tepat') || status.contains('selesai')) hadir++;
-                              if (status.contains('telat') || status.contains('terlambat')) {
-                                hadir++; 
-                                terlambat++;
-                              }
-                            }
-                          } catch (_) {}
-                        }
-                      }
-
-                      return Row(
-                        children: [
-                          _buildStatCard('Hadir', hadir.toString(), Colors.green),
-                          const SizedBox(width: 12),
-                          _buildStatCard('Terlambat', terlambat.toString(), Colors.orange),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 32),
-
-                  // --- KALENDER (UI bawaan lu) ---
-                  Text('Kalender Kehadiran', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800])),
-                  const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
-                    ),
-                    child: _buildCalendarGrid(context),
-                  ),
+                  _buildGreeting(namaPanggilan),
                   const SizedBox(height: 20),
-
-                  // --- AKTIVITAS TERBARU YANG UDAH REAL-TIME & CANGGIH ---
+                  _buildCalendarCard(context),
+                  const SizedBox(height: 16),
+                  _buildPengajuanCepat(context),
+                  const SizedBox(height: 20),
+                  _buildSectionTitle('Aksi Cepat'),
+                  const SizedBox(height: 12),
+                  _buildQuickActions(context),
+                  const SizedBox(height: 20),
                   _buildRecentActivity(nrpSiswa),
                 ],
               ),
-            ),
-          );
-        }
-      ),
-    );
-  }
-
-  Widget _buildCheckCard({required String title, required String time, required IconData icon, required Color color, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withOpacity(0.15), color.withOpacity(0.05)]),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-            const SizedBox(height: 8),
-            Text(time, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, MaterialColor color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color[600])),
-            const SizedBox(height: 6),
-            Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[600])),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCalendarGrid(BuildContext context) {
-    // Biarin UI kalender bawaan lu tetep di sini, kodingannya aman.
-    final DateTime focusedDay = DateTime.now();
-    final DateTime firstDay = DateTime(focusedDay.year, focusedDay.month - 3, 1);
-    final DateTime lastDay = DateTime(focusedDay.year, focusedDay.month + 3, 0);
-    final holidayService = HolidayService(''); 
-
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: StreamBuilder<List<DateTime>>(
-        stream: holidayService.streamCachedHolidays('indonesia', focusedDay.year),
-        builder: (context, snap) {
-          final holidays = snap.data ?? <DateTime>[];
-          final holidayDates = holidays.where((d) => d.month == focusedDay.month).map((d) => d.day).toSet();
-
-          return TableCalendar<dynamic>(
-            firstDay: firstDay,
-            lastDay: lastDay,
-            focusedDay: focusedDay,
-            availableGestures: AvailableGestures.horizontalSwipe,
-            headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
-            calendarStyle: const CalendarStyle(todayDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle)),
-            calendarBuilders: CalendarBuilders(
-              defaultBuilder: (context, date, focusedDayParam) {
-                final isSunday = date.weekday == DateTime.sunday;
-                final isExtraHoliday = date.month == focusedDay.month && holidayDates.contains(date.day);
-                if (isSunday || isExtraHoliday) {
-                  return Container(
-                    margin: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.25)),
-                    ),
-                    child: Center(child: Text(date.day.toString(), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700))),
-                  );
-                }
-                return null;
-              },
             ),
           );
         },
@@ -307,38 +85,488 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // LOGIK AKTIVITAS TERBARU YANG UDAH DI-UPGRADE
-  Widget _buildRecentActivity(String nrp) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8, bottom: 30),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
+  Widget _buildGreeting(String nama) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hello, $nama',
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Universitas Jenderal Achmad Yani',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.blue, Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.blue.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              nama.isNotEmpty ? nama[0].toUpperCase() : 'B',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCalendarCard(BuildContext context) {
+    return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Aktivitas Terbaru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800])),
-          const SizedBox(height: 12),
-          
+          _buildCardTitle(Icons.calendar_today_rounded, 'Kalender Kehadiran'),
+          _buildCalendarGrid(context),
+          const SizedBox(height: 14),
+          _buildStatsRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalendarGrid(BuildContext context) {
+    final now = DateTime.now();
+    final holidayService = HolidayService('');
+
+    return StreamBuilder<List<DateTime>>(
+      stream: holidayService.streamCachedHolidays('indonesia', now.year),
+      builder: (context, snap) {
+        final holidays = snap.data ?? <DateTime>[];
+        final holidayDays = holidays
+            .where((d) => d.month == now.month && d.year == now.year)
+            .map((d) => d.day)
+            .toSet();
+
+        return TableCalendar<dynamic>(
+          firstDay: DateTime(now.year, now.month - 3, 1),
+          lastDay: DateTime(now.year, now.month + 3, 0),
+          focusedDay: now,
+          availableGestures: AvailableGestures.horizontalSwipe,
+          headerStyle: HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+            titleTextStyle: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+            leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: AppColors.textSecondary, size: 22),
+            rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 22),
+          ),
+          daysOfWeekStyle: DaysOfWeekStyle(
+            weekdayStyle: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+            weekendStyle: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+          calendarStyle: CalendarStyle(
+            todayDecoration: BoxDecoration(
+              color: AppColors.blue,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.blue.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            todayTextStyle: GoogleFonts.inter(
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+            defaultTextStyle: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+            weekendTextStyle: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+            outsideTextStyle: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted.withValues(alpha: 0.4),
+            ),
+          ),
+          calendarBuilders: CalendarBuilders(
+            defaultBuilder: (context, date, focusedDay) {
+              final isSunday = date.weekday == DateTime.sunday;
+              final isHoliday = date.month == now.month &&
+                  date.year == now.year &&
+                  holidayDays.contains(date.day);
+
+              if (isSunday || isHoliday) {
+                return Container(
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                  child: Center(
+                    child: Text(
+                      '${date.day}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.orange,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return null;
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsRow() {
+    final User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return const SizedBox.shrink();
+
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUser.email)
+          .limit(1)
+          .get(),
+      builder: (context, userSnap) {
+        String nrp = '';
+        if (userSnap.hasData && userSnap.data!.docs.isNotEmpty) {
+          var userData = userSnap.data!.docs.first.data() as Map<String, dynamic>;
+          nrp = userData['nrp'] ?? '';
+        }
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('absensi')
+              .where('nrp', isEqualTo: nrp)
+              .snapshots(),
+          builder: (context, snapshot) {
+            int hadir = 0;
+            int terlambat = 0;
+
+            if (snapshot.hasData) {
+              for (final doc in snapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                final status = (data['status'] ?? '').toString().toLowerCase();
+                final waktuAbsen = (data['waktu_absen'] ?? '').toString();
+
+                try {
+                  List<String> parts = waktuAbsen.split(' ')[0].split('-');
+                  int bln = int.parse(parts[1]);
+                  int thn = int.parse(parts[2]);
+
+                  if (bln == DateTime.now().month && thn == DateTime.now().year) {
+                    if (status.contains('tepat') || status.contains('selesai')) hadir++;
+                    if (status.contains('telat') || status.contains('terlambat')) {
+                      hadir++;
+                      terlambat++;
+                    }
+                  }
+                } catch (_) {}
+              }
+            }
+
+            return Row(
+              children: [
+                _buildStatChip(AppColors.green, hadir, 'Hadir'),
+                const SizedBox(width: 10),
+                _buildStatChip(AppColors.orange, terlambat, 'Terlambat'),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatChip(Color color, int value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$value',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPengajuanCepat(BuildContext context) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardTitle(Icons.description_outlined, 'Pengajuan Cepat'),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedPengajuan.isEmpty ? null : _selectedPengajuan,
+            isExpanded: true,
+            menuMaxHeight: 300,
+            hint: Text(
+              'Pilih jenis pengajuan...',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+              ),
+            ),
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary, size: 22),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.surface,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.blue, width: 1.5),
+              ),
+            ),
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+            ),
+            items: _pilihanPengajuan
+                .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                .toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => _selectedPengajuan = val);
+            },
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_selectedPengajuan.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Pilih jenis pengajuan terlebih dahulu.'),
+                    backgroundColor: AppColors.red,
+                  ));
+                  return;
+                }
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const FormIzinPage()));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.blue,
+                elevation: 2,
+                shadowColor: AppColors.blue.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                'Ajukan Sekarang',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildQuickAction(
+            icon: Icons.qr_code_scanner_rounded,
+            label: 'Absen',
+            bg: AppColors.blueLight,
+            iconColor: AppColors.blue,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AbsenPage())),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildQuickAction(
+            icon: Icons.history_rounded,
+            label: 'Riwayat',
+            bg: AppColors.orangeLight,
+            iconColor: AppColors.orange,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryPage())),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickAction({
+    required IconData icon,
+    required String label,
+    required Color bg,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentActivity(String nrp) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildCardTitle(Icons.access_time_rounded, 'Aktivitas Terbaru'),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryPage())),
+                child: Text(
+                  'Detail',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.blue,
+                  ),
+                ),
+              ),
+            ],
+          ),
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('absensi').where('nrp', isEqualTo: nrp).snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('absensi')
+                .where('nrp', isEqualTo: nrp)
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator(color: AppColors.blue, strokeWidth: 2)),
+                );
               }
-              
+
               var docs = snapshot.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Belum ada aktivitas.', style: TextStyle(color: Colors.grey[600])),
+                  child: Text(
+                    'Belum ada aktivitas.',
+                    style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
+                  ),
                 );
               }
 
-              // Urutkan berdasarkan waktu di ID dokumen (Terbaru di atas)
               docs.sort((a, b) {
                 try {
                   int timeA = int.parse(a.id.split('_').last);
@@ -349,68 +577,127 @@ class _HomePageState extends State<HomePage> {
                 }
               });
 
-              // Ambil 5 teratas aja biar layarnya rapi
-              var latestDocs = docs.take(5).toList();
+              var latestDocs = docs.take(3).toList();
 
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: latestDocs.length,
-                itemBuilder: (context, index) {
+              return Column(
+                children: List.generate(latestDocs.length, (index) {
                   var data = latestDocs[index].data() as Map<String, dynamic>;
                   String status = data['status'] ?? 'Hadir';
                   String jenisAbsen = data['jenis_absen'] ?? 'Masuk';
                   String waktuRaw = data['waktu_absen'] ?? '';
-                  
-                  // Pecah format "07-06-2026 08:30"
-                  String tanggal = waktuRaw;
+
                   String jam = '--:--';
                   if (waktuRaw.contains(' ')) {
-                    tanggal = waktuRaw.split(' ')[0];
                     jam = waktuRaw.split(' ')[1];
                   }
 
-                  // Atur warna dan icon
-                  IconData icon = Icons.check_circle;
-                  MaterialColor color = Colors.green;
-                  
+                  Color statusColor = AppColors.green;
+                  IconData statusIcon = Icons.check_circle_rounded;
+
                   if (status.toLowerCase().contains('selesai')) {
-                    icon = Icons.logout;
-                    color = Colors.blue;
+                    statusColor = AppColors.blue;
+                    statusIcon = Icons.logout_rounded;
                   } else if (status.toLowerCase().contains('terlambat') || status.toLowerCase().contains('telat')) {
-                    icon = Icons.access_time_filled;
-                    color = Colors.orange;
+                    statusColor = AppColors.orange;
+                    statusIcon = Icons.access_time_filled_rounded;
                   }
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: color[50], borderRadius: BorderRadius.circular(12)),
-                          child: Icon(icon, color: color[600], size: 20),
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(statusIcon, color: statusColor, size: 18),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Absen $jenisAbsen ($status)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                              const SizedBox(height: 2),
-                              Text(tanggal, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                              Text(
+                                'Absen $jenisAbsen ($status)',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        Text(jam, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.grey[700])),
+                        Text(
+                          jam,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   );
-                },
+                }),
               );
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildCardTitle(IconData icon, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.blue),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
       ),
     );
   }

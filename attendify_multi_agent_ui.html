@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendify — Multi-Agent Network UI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0a0a0f;
+    --surface:rgba(255,255,255,0.06);
+    --glass:rgba(255,255,255,0.08);
+    --glass-border:rgba(255,255,255,0.12);
+    --text:#f0f0f5;
+    --text-dim:rgba(255,255,255,0.5);
+    --blue:#007AFF;
+    --blue-glow:#007AFF;
+    --orange:#FF6B2C;
+    --orange-glow:#FF6B2C;
+    --green:#39FF14;
+    --green-glow:#39FF14;
+    --purple:#A855F7;
+    --purple-glow:#A855F7;
+    --squircle:24px;
+  }
+  html{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:auto;overflow-y:hidden;height:100%}
+  body{min-width:max-content;height:100vh;display:flex;align-items:stretch;padding:24px;gap:24px;background:radial-gradient(ellipse at 20% 50%,rgba(0,122,255,0.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 50%,rgba(255,107,44,0.06) 0%,transparent 60%),var(--bg)}
+
+  .screen{
+    flex:0 0 420px;
+    height:100%;
+    border-radius:32px;
+    background:rgba(18,18,24,0.95);
+    border:1px solid var(--glass-border);
+    backdrop-filter:blur(20px);
+    padding:28px 24px 20px;
+    display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+    box-shadow:0 0 60px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .screen::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  }
+
+  .glow-line{
+    position:absolute;
+    width:3px;
+    background:linear-gradient(180deg,var(--blue),var(--orange),var(--green));
+    opacity:0.6;
+    filter:blur(1px);
+    animation:glowPulse 2s ease-in-out infinite alternate;
+    z-index:10;
+  }
+  @keyframes glowPulse{0%{opacity:0.3;filter:blur(1px)}100%{opacity:0.8;filter:blur(2px)}}
+
+  .title-xl{font-size:28px;font-weight:900;letter-spacing:-0.5px;line-height:1.1;margin-bottom:4px}
+  .title-lg{font-size:22px;font-weight:900;letter-spacing:-0.3px;line-height:1.15}
+  .title-md{font-size:17px;font-weight:700}
+  .title-sm{font-size:13px;font-weight:600}
+  .subtitle{font-size:12px;color:var(--text-dim);font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+
+  .neon-text-blue{color:var(--blue);text-shadow:0 0 20px rgba(0,122,255,0.5)}
+  .neon-text-orange{color:var(--orange);text-shadow:0 0 20px rgba(255,107,44,0.5)}
+  .neon-text-green{color:var(--green);text-shadow:0 0 20px rgba(57,255,20,0.5)}
+  .neon-text-purple{color:var(--purple);text-shadow:0 0 20px rgba(168,85,247,0.5)}
+
+  .glass-card{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    border-radius:var(--squircle);
+    backdrop-filter:blur(16px);
+    padding:20px;
+    position:relative;overflow:hidden;
+  }
+  .glass-card::after{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  }
+
+  .squircle-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:14px 28px;
+    border-radius:20px;
+    border:none;
+    font-family:inherit;font-size:14px;font-weight:700;
+    color:#fff;cursor:pointer;
+    transition:all 0.3s ease;
+    position:relative;overflow:hidden;
+  }
+  .squircle-btn.blue{background:linear-gradient(135deg,#007AFF,#0055D4);box-shadow:0 4px 20px rgba(0,122,255,0.4)}
+  .squircle-btn.orange{background:linear-gradient(135deg,#FF6B2C,#FF3D00);box-shadow:0 4px 20px rgba(255,107,44,0.4)}
+  .squircle-btn.green{background:linear-gradient(135deg,#39FF14,#00C853);box-shadow:0 4px 20px rgba(57,255,20,0.3);color:#0a0a0f}
+  .squircle-btn:hover{transform:translateY(-2px);filter:brightness(1.15)}
+
+  .agent-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:16px;
+    font-size:11px;font-weight:700;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1);
+    white-space:nowrap;
+  }
+  .agent-pill .dot{width:8px;height:8px;border-radius:50%;animation:dotPulse 1.5s ease-in-out infinite}
+  @keyframes dotPulse{0%,100%{opacity:0.5;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+
+  .flow-arrow{
+    display:flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    font-size:12px;color:var(--text-dim);
+    flex-shrink:0;
+  }
+
+  .agent-flow{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+
+  .orb{
+    width:48px;height:48px;border-radius:50%;
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    box-shadow:0 0 30px var(--glow-color,rgba(0,122,255,0.4));
+    animation:orbFloat 3s ease-in-out infinite;
+  }
+  .orb.blue{background:radial-gradient(circle,rgba(0,122,255,0.3),rgba(0,122,255,0.08));--glow-color:rgba(0,122,255,0.4)}
+  .orb.orange{background:radial-gradient(circle,rgba(255,107,44,0.3),rgba(255,107,44,0.08));--glow-color:rgba(255,107,44,0.4)}
+  .orb.green{background:radial-gradient(circle,rgba(57,255,20,0.3),rgba(57,255,20,0.08));--glow-color:rgba(57,255,20,0.4)}
+  .orb.purple{background:radial-gradient(circle,rgba(168,85,247,0.3),rgba(168,85,247,0.08));--glow-color:rgba(168,85,247,0.4)}
+  @keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+  .progress-bar{
+    height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;
+  }
+  .progress-bar .fill{
+    height:100%;border-radius:3px;
+    background:linear-gradient(90deg,var(--blue),var(--orange),var(--green));
+    animation:progressFill 3s ease-in-out infinite;
+  }
+  @keyframes progressFill{0%{width:15%}50%{width:85%}100%{width:15%}}
+
+  .calendar-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;
+  }
+  .cal-day{
+    width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:600;color:var(--text-dim);margin:0 auto;
+  }
+  .cal-day.today{
+    background:var(--blue);color:#fff;box-shadow:0 0 16px rgba(0,122,255,0.6);
+    animation:todayGlow 2s ease-in-out infinite alternate;
+  }
+  .cal-day.holiday{color:var(--orange)}
+  @keyframes todayGlow{0%{box-shadow:0 0 12px rgba(0,122,255,0.4)}100%{box-shadow:0 0 24px rgba(0,122,255,0.8)}}
+
+  .log-entry{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 14px;border-radius:14px;
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.05);
+    font-size:12px;
+  }
+  .log-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+  .input-squircle{
+    width:100%;padding:14px 18px;border-radius:18px;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+    color:var(--text);font-family:inherit;font-size:13px;
+    outline:none;transition:border-color 0.3s;
+  }
+  .input-squircle:focus{border-color:var(--blue)}
+  .input-squircle::placeholder{color:var(--text-dim)}
+
+  select.input-squircle{
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.4)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;
+  }
+
+  .network-canvas{position:relative;width:100%;flex:1;min-height:200px}
+  .network-node{
+    position:absolute;width:56px;height:56px;border-radius:18px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    font-size:9px;font-weight:700;text-align:center;line-height:1.1;
+    border:1.5px solid rgba(255,255,255,0.12);
+    backdrop-filter:blur(8px);
+    transition:all 0.3s;
+  }
+  .network-node:hover{transform:scale(1.1);z-index:5}
+  .network-node .icon{font-size:20px}
+
+  .data-flow-line{
+    position:absolute;
+    height:2px;
+    transform-origin:left center;
+    opacity:0.5;
+  }
+  .data-flow-line .glow{
+    position:absolute;top:-2px;left:0;right:0;height:6px;
+    border-radius:3px;filter:blur(3px);
+  }
+  .data-flow-line .particle{
+    position:absolute;top:-3px;width:8px;height:8px;border-radius:50%;
+    filter:blur(2px);
+    animation:particleMove 2s linear infinite;
+  }
+  @keyframes particleMove{0%{left:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+
+  .nav-bar{
+    position:absolute;bottom:16px;left:20px;right:20px;
+    display:flex;justify-content:space-around;align-items:center;
+    padding:12px 8px;border-radius:22px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(20px);
+  }
+  .nav-item{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:10px;font-weight:600;color:var(--text-dim);cursor:pointer;
+    transition:color 0.3s;
+  }
+  .nav-item.active{color:var(--blue)}
+  .nav-item .nav-icon{font-size:20px}
+
+  .scanner-box{
+    width:160px;height:160px;border-radius:20px;margin:0 auto;
+    border:2px solid var(--blue);position:relative;overflow:hidden;
+    background:rgba(0,122,255,0.05);
+    box-shadow:0 0 30px rgba(0,122,255,0.15);
+  }
+  .scanner-box::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:var(--blue);box-shadow:0 0 12px var(--blue);
+    animation:scanLine 2s ease-in-out infinite;
+  }
+  @keyframes scanLine{0%{top:0}50%{top:calc(100% - 2px)}100%{top:0}}
+  .scanner-corners::before,.scanner-corners::after{
+    content:'';position:absolute;width:20px;height:20px;
+  }
+  .scanner-corners::before{top:8px;left:8px;border-top:3px solid var(--blue);border-left:3px solid var(--blue)}
+  .scanner-corners::after{bottom:8px;right:8px;border-bottom:3px solid var(--blue);border-right:3px solid var(--blue)}
+
+  .face-outline{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:80px;height:100px;border:2px dashed rgba(0,122,255,0.4);border-radius:50%;
+  }
+
+  .leave-banner{
+    background:linear-gradient(135deg,rgba(255,107,44,0.15),rgba(255,107,44,0.05));
+    border:1px solid rgba(255,107,44,0.3);
+    border-radius:18px;padding:16px;
+    display:flex;align-items:center;gap:12px;
+  }
+
+  .task-step{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:12px;
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    font-size:11px;font-weight:600;
+  }
+  .task-step .step-num{
+    width:22px;height:22px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;flex-shrink:0;
+  }
+
+  .status-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:4px 10px;border-radius:10px;
+    font-size:10px;font-weight:700;
+  }
+
+  .divider{height:1px;background:rgba(255,255,255,0.06);margin:12px 0}
+
+  .scroll-inner{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:70px}
+  .scroll-inner::-webkit-scrollbar{width:3px}
+  .scroll-inner::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+
+  .screen-label{
+    position:absolute;top:12px;right:16px;
+    font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:rgba(255,255,255,0.2);
+  }
+
+  .glow-connector{
+    position:fixed;top:0;bottom:0;width:24px;pointer-events:none;z-index:100;
+  }
+  .glow-connector svg{width:100%;height:100%}
+</style>
+</head>
+<body>
+
+<!-- ==================== SCREEN 1: HOME & AGENT NETWORK ==================== -->
+<div class="screen" id="screen1">
+  <span class="screen-label">01 — HOME</span>
+  <div class="scroll-inner">
+    <div class="subtitle" style="margin-bottom:4px;color:var(--blue)">attendify</div>
+    <div class="title-xl" style="margin-bottom:2px">Multi-Agent<br>Network: <span class="neon-text-green">Active</span></div>
+    <div style="height:16px"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff">B</div>
+      <div>
+        <div class="title-md">hello, bima 👋</div>
+        <div style="font-size:12px;color:var(--text-dim)">LPKIA Bandung</div>
+      </div>
+    </div>
+
+    <div class="glass-card" style="margin-bottom:16px;text-align:center;cursor:pointer;transition:all 0.3s" onmouseover="this.style.borderColor='rgba(0,122,255,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
+      <div style="font-size:40px;margin-bottom:8px">📸</div>
+      <div class="title-md neon-text-blue">Scan QR</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Tap to clock in</div>
+    </div>
+
+    <div class="subtitle" style="margin-bottom:12px">Network Overview</div>
+    <div class="glass-card" style="padding:20px 16px">
+      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px">
+        <div class="orb orange" style="animation-delay:0s"><span>🔍</span></div>
+        <div class="orb blue" style="animation-delay:0.3s"><span>📊</span></div>
+        <div class="orb green" style="animation-delay:0.6s"><span>🏖️</span></div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:12px">
+        <div class="orb purple" style="animation-delay:0.9s;width:40px;height:40px"><span style="font-size:15px">👤</span></div>
+        <div class="orb orange" style="animation-delay:1.2s;width:40px;height:40px"><span style="font-size:15px">⚙️</span></div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+        <div class="agent-pill"><div class="dot" style="background:var(--orange)"></div>ScanAgent</div>
+        <div class="agent-pill"><div class="dot" style="background:var(--blue)"></div>HistoryAgent</div>
+        <div class="agent-pill"><div class="dot" style="background:var(--green)"></div>LeaveAgent</div>
+        <div class="agent-pill"><div class="dot" style="background:var(--purple)"></div>ProfileAgent</div>
+        <div class="agent-pill"><div class="dot" style="background:var(--orange)"></div>AdminAgent</div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+    <div style="display:flex;gap:8px">
+      <div class="status-badge" style="background:rgba(57,255,20,0.1);color:var(--green);border:1px solid rgba(57,255,20,0.2)">● 5 Agents Online</div>
+      <div class="status-badge" style="background:rgba(0,122,255,0.1);color:var(--blue);border:1px solid rgba(0,122,255,0.2)">⚡ Synced</div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item active"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item"><span class="nav-icon">📷</span>Scan</div>
+    <div class="nav-item"><span class="nav-icon">📋</span>History</div>
+    <div class="nav-item"><span class="nav-icon">🏖️</span>Leave</div>
+    <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 2: CLOCK-IN FLOW ==================== -->
+<div class="screen" id="screen2">
+  <span class="screen-label">02 — CLOCK-IN</span>
+  <div class="scroll-inner">
+    <div class="subtitle neon-text-orange" style="margin-bottom:4px">Scan Agent</div>
+    <div class="title-lg" style="margin-bottom:4px">Scan QR to<br>Clock In</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:16px">Verify location at radiusMax: 50.0m</div>
+
+    <div class="glass-card" style="margin-bottom:16px;padding:24px 20px;text-align:center">
+      <div class="scanner-box">
+        <div class="scanner-corners" style="position:absolute;inset:0"></div>
+        <div class="face-outline"></div>
+        <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--blue);font-weight:600">Verifying...</div>
+      </div>
+      <div style="margin-top:16px;display:flex;justify-content:center;gap:6px">
+        <div class="status-badge" style="background:rgba(0,122,255,0.1);color:var(--blue);border:1px solid rgba(0,122,255,0.2)">📍 In Range</div>
+        <div class="status-badge" style="background:rgba(57,255,20,0.1);color:var(--green);border:1px solid rgba(57,255,20,0.2)">✓ GPS OK</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <button class="squircle-btn blue" style="flex:1">Start Scan</button>
+      <button class="squircle-btn orange" style="flex:1">Submit</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="subtitle" style="margin-bottom:10px">Agent Collaboration</div>
+
+    <div class="glass-card" style="padding:14px">
+      <div class="agent-flow" style="margin-bottom:10px">
+        <div class="agent-pill" style="border-color:rgba(255,107,44,0.3)"><div class="dot" style="background:var(--orange)"></div>CameraAgent</div>
+        <div class="flow-arrow">→</div>
+        <div class="agent-pill" style="border-color:rgba(0,122,255,0.3)"><div class="dot" style="background:var(--blue)"></div>LocationAgent</div>
+        <div class="flow-arrow">→</div>
+        <div class="agent-pill" style="border-color:rgba(57,255,20,0.3)"><div class="dot" style="background:var(--green)"></div>PhotoAPIAgent</div>
+      </div>
+      <div class="progress-bar"><div class="fill" style="animation-delay:0s"></div></div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-dim);text-align:center">Data pipeline: Capture → GeoVerify → Upload</div>
+    </div>
+
+    <div style="height:10px"></div>
+    <div class="glass-card" style="padding:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
+        <span style="font-size:11px;font-weight:700">Live Status</span>
+      </div>
+      <div class="log-entry" style="margin-bottom:6px">
+        <div class="log-dot" style="background:var(--orange)"></div>
+        <span style="color:var(--orange);font-weight:700">CAMERA</span>
+        <span style="color:var(--text-dim)">Front camera initialized</span>
+      </div>
+      <div class="log-entry" style="margin-bottom:6px">
+        <div class="log-dot" style="background:var(--blue)"></div>
+        <span style="color:var(--blue);font-weight:700">LOCATION</span>
+        <span style="color:var(--text-dim)">-7.0289, 107.6980 ✓</span>
+      </div>
+      <div class="log-entry">
+        <div class="log-dot" style="background:var(--green)"></div>
+        <span style="color:var(--green);font-weight:700">PHOTO_API</span>
+        <span style="color:var(--text-dim)">Ready to upload</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item active"><span class="nav-icon">📷</span>Scan</div>
+    <div class="nav-item"><span class="nav-icon">📋</span>History</div>
+    <div class="nav-item"><span class="nav-icon">🏖️</span>Leave</div>
+    <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 3: ATTENDANCE HISTORY ==================== -->
+<div class="screen" id="screen3">
+  <span class="screen-label">03 — HISTORY</span>
+  <div class="scroll-inner">
+    <div class="subtitle neon-text-blue" style="margin-bottom:4px">History Agent</div>
+    <div class="title-lg" style="margin-bottom:16px">Attendance<br>History</div>
+
+    <div class="glass-card" style="margin-bottom:16px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="title-sm">June 2026</span>
+        <div style="display:flex;gap:6px">
+          <span style="cursor:pointer;color:var(--text-dim)">◀</span>
+          <span style="cursor:pointer;color:var(--text-dim)">▶</span>
+        </div>
+      </div>
+      <div class="calendar-grid">
+        <div class="cal-day" style="font-size:10px;color:var(--text-dim)">Mo</div>
+        <div class="cal-day" style="font-size:10px;color:var(--text-dim)">Tu</div>
+        <div class="cal-day" style="font-size:10px;color:var(--text-dim)">We</div>
+        <div class="cal-day" style="font-size:10px;color:var(--text-dim)">Th</div>
+        <div class="cal-day" style="font-size:10px;color:var(--text-dim)">Fr</div>
+        <div class="cal-day" style="font-size:10px;color:var(--text-dim)">Sa</div>
+        <div class="cal-day" style="font-size:10px;color:var(--orange)">Su</div>
+        <div class="cal-day">1</div>
+        <div class="cal-day">2</div>
+        <div class="cal-day">3</div>
+        <div class="cal-day">4</div>
+        <div class="cal-day">5</div>
+        <div class="cal-day holiday">6</div>
+        <div class="cal-day holiday">7</div>
+        <div class="cal-day">8</div>
+        <div class="cal-day">9</div>
+        <div class="cal-day today">10</div>
+        <div class="cal-day">11</div>
+        <div class="cal-day">12</div>
+        <div class="cal-day holiday">13</div>
+        <div class="cal-day holiday">14</div>
+        <div class="cal-day">15</div>
+        <div class="cal-day">16</div>
+        <div class="cal-day">17</div>
+        <div class="cal-day">18</div>
+        <div class="cal-day">19</div>
+        <div class="cal-day holiday">20</div>
+        <div class="cal-day holiday">21</div>
+        <div class="cal-day">22</div>
+        <div class="cal-day">23</div>
+        <div class="cal-day">24</div>
+        <div class="cal-day">25</div>
+        <div class="cal-day">26</div>
+        <div class="cal-day holiday">27</div>
+        <div class="cal-day holiday">28</div>
+        <div class="cal-day">29</div>
+        <div class="cal-day">30</div>
+      </div>
+    </div>
+
+    <div class="subtitle" style="margin-bottom:10px">Today's Log</div>
+    <div class="log-entry" style="margin-bottom:8px;border-color:rgba(255,107,44,0.15)">
+      <div class="log-dot" style="background:var(--orange)"></div>
+      <span style="font-weight:700;color:var(--orange)">In</span>
+      <span style="color:var(--text)">08:00 AM</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--text-dim)">Tepat Waktu</span>
+    </div>
+    <div class="log-entry" style="margin-bottom:8px;border-color:rgba(0,122,255,0.15)">
+      <div class="log-dot" style="background:var(--blue)"></div>
+      <span style="font-weight:700;color:var(--blue)">Out</span>
+      <span style="color:var(--text)">05:00 PM</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--text-dim)">Selesai Sif</span>
+    </div>
+
+    <div style="height:10px"></div>
+    <div class="subtitle" style="margin-bottom:8px">Agent Sync Log</div>
+    <div class="glass-card" style="padding:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="log-dot" style="background:var(--orange)"></div>
+        <span style="font-size:11px;font-weight:700;color:var(--orange)">Database</span>
+        <div class="flow-arrow" style="width:20px;height:20px;font-size:10px">→</div>
+        <span style="font-size:11px;font-weight:700;color:var(--purple)">HR API</span>
+        <div class="log-dot" style="background:var(--purple)"></div>
+      </div>
+      <div class="progress-bar"><div class="fill"></div></div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-dim)">hitungAbsenHariIni: syncing Firestore → HR dashboard</div>
+    </div>
+
+    <div style="height:10px"></div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1;text-align:center;padding:12px;border-radius:14px;background:rgba(57,255,20,0.06);border:1px solid rgba(57,255,20,0.15)">
+        <div style="font-size:22px;font-weight:900;color:var(--green)">18</div>
+        <div style="font-size:10px;color:var(--text-dim)">Hadir</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:12px;border-radius:14px;background:rgba(255,107,44,0.06);border:1px solid rgba(255,107,44,0.15)">
+        <div style="font-size:22px;font-weight:900;color:var(--orange)">3</div>
+        <div style="font-size:10px;color:var(--text-dim)">Terlambat</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:12px;border-radius:14px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.15)">
+        <div style="font-size:22px;font-weight:900;color:var(--blue)">2</div>
+        <div style="font-size:10px;color:var(--text-dim)">Pulang Cepat</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item"><span class="nav-icon">📷</span>Scan</div>
+    <div class="nav-item active"><span class="nav-icon">📋</span>History</div>
+    <div class="nav-item"><span class="nav-icon">🏖️</span>Leave</div>
+    <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 4: LEAVE APPLICATION ==================== -->
+<div class="screen" id="screen4">
+  <span class="screen-label">04 — LEAVE</span>
+  <div class="scroll-inner">
+    <div class="subtitle neon-text-orange" style="margin-bottom:4px">Leave Agent</div>
+    <div class="title-lg" style="margin-bottom:16px">Leave<br>Application</div>
+
+    <div class="leave-banner" style="margin-bottom:16px">
+      <div style="font-size:28px">🏖️</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--orange)">Sisa Cuti Tahunan: 8 Hari</div>
+        <div style="font-size:11px;color:rgba(255,107,44,0.7);margin-top:2px">Pulled from users collection</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:700;color:var(--text-dim);display:block;margin-bottom:6px">Jenis Pengajuan</label>
+      <select class="input-squircle">
+        <option>Sakit</option>
+        <option selected>Cuti Tahunan</option>
+        <option>Izin Pribadi</option>
+        <option>Izin Masuk Terlambat</option>
+        <option>Izin Pulang Cepat</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <div style="flex:1">
+        <label style="font-size:12px;font-weight:700;color:var(--text-dim);display:block;margin-bottom:6px">Dari Tanggal</label>
+        <input type="text" class="input-squircle" value="11/06/2026" readonly>
+      </div>
+      <div style="flex:1">
+        <label style="font-size:12px;font-weight:700;color:var(--text-dim);display:block;margin-bottom:6px">Sampai Tanggal</label>
+        <input type="text" class="input-squircle" value="13/06/2026" readonly>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:700;color:var(--text-dim);display:block;margin-bottom:6px">Keterangan / Alasan</label>
+      <textarea class="input-squircle" rows="3" placeholder="Tuliskan alasan lengkap..." style="resize:none"></textarea>
+    </div>
+
+    <div class="glass-card" style="padding:16px;text-align:center;margin-bottom:14px;cursor:pointer">
+      <div style="font-size:28px;margin-bottom:6px">📎</div>
+      <div style="font-size:12px;font-weight:700;color:var(--blue)">Tap to upload bukti</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Opsional untuk Cuti Tahunan</div>
+    </div>
+
+    <button class="squircle-btn orange" style="width:100%;margin-bottom:16px">Kirim Pengajuan</button>
+
+    <div class="divider"></div>
+    <div class="subtitle" style="margin-bottom:10px">Leave Policy Workflow</div>
+
+    <div class="glass-card" style="padding:14px">
+      <div class="agent-flow" style="margin-bottom:10px">
+        <div class="agent-pill" style="border-color:rgba(255,107,44,0.3)"><div class="dot" style="background:var(--orange)"></div>FormProcessor</div>
+        <div class="flow-arrow">→</div>
+        <div class="agent-pill" style="border-color:rgba(168,85,247,0.3)"><div class="dot" style="background:var(--purple)"></div>LeavePolicy</div>
+        <div class="flow-arrow">→</div>
+        <div class="agent-pill" style="border-color:rgba(0,122,255,0.3)"><div class="dot" style="background:var(--blue)"></div>LeaveAPI</div>
+      </div>
+      <div class="progress-bar"><div class="fill" style="animation-delay:0.5s"></div></div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-dim);text-align:center">Validate → Check Policy → Submit to Firestore</div>
+    </div>
+
+    <div style="height:10px"></div>
+    <div class="glass-card" style="padding:12px">
+      <div style="font-size:11px;font-weight:700;margin-bottom:8px">Policy Check Log</div>
+      <div class="log-entry" style="margin-bottom:6px">
+        <div class="log-dot" style="background:var(--orange)"></div>
+        <span style="color:var(--orange);font-weight:700">FORM</span>
+        <span style="color:var(--text-dim)">Validating 3 days ≤ 8 remaining</span>
+      </div>
+      <div class="log-entry" style="margin-bottom:6px">
+        <div class="log-dot" style="background:var(--purple)"></div>
+        <span style="color:var(--purple);font-weight:700">POLICY</span>
+        <span style="color:var(--text-dim)">sisa_cuti check: PASS ✓</span>
+      </div>
+      <div class="log-entry">
+        <div class="log-dot" style="background:var(--blue)"></div>
+        <span style="color:var(--blue);font-weight:700">API</span>
+        <span style="color:var(--text-dim)">pengajuan_izin → Menunggu</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item"><span class="nav-icon">📷</span>Scan</div>
+    <div class="nav-item"><span class="nav-icon">📋</span>History</div>
+    <div class="nav-item active"><span class="nav-icon">🏖️</span>Leave</div>
+    <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+  </div>
+</div>
+
+<!-- ==================== SCREEN 5: AGENT SYNC DASHBOARD ==================== -->
+<div class="screen" id="screen5">
+  <span class="screen-label">05 — DASHBOARD</span>
+  <div class="scroll-inner">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div class="subtitle neon-text-blue" style="font-size:14px;letter-spacing:2px">attendify</div>
+      <div class="status-badge" style="background:rgba(57,255,20,0.1);color:var(--green);border:1px solid rgba(57,255,20,0.2)">● LIVE</div>
+    </div>
+    <div class="title-lg" style="margin-bottom:16px">Agent Sync<br>Dashboard</div>
+
+    <div class="glass-card" style="padding:16px;margin-bottom:16px">
+      <div class="subtitle" style="margin-bottom:12px">Agent Network Map</div>
+      <div class="network-canvas" style="height:220px">
+        <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+          <defs>
+            <linearGradient id="flowGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#FF6B2C;stop-opacity:0.6"/>
+              <stop offset="100%" style="stop-color:#007AFF;stop-opacity:0.6"/>
+            </linearGradient>
+            <linearGradient id="flowGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#007AFF;stop-opacity:0.6"/>
+              <stop offset="100%" style="stop-color:#39FF14;stop-opacity:0.6"/>
+            </linearGradient>
+            <linearGradient id="flowGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#39FF14;stop-opacity:0.6"/>
+              <stop offset="100%" style="stop-color:#A855F7;stop-opacity:0.6"/>
+            </linearGradient>
+            <linearGradient id="flowGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#A855F7;stop-opacity:0.6"/>
+              <stop offset="100%" style="stop-color:#FF6B2C;stop-opacity:0.6"/>
+            </linearGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <!-- SCAN → HISTORY -->
+          <line x1="85" y1="50" x2="195" y2="90" stroke="url(#flowGrad1)" stroke-width="2" filter="url(#glow)" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
+          </line>
+          <!-- HISTORY → LEAVE -->
+          <line x1="225" y1="90" x2="155" y2="160" stroke="url(#flowGrad2)" stroke-width="2" filter="url(#glow)" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.3s" repeatCount="indefinite"/>
+          </line>
+          <!-- LEAVE → PROFILE -->
+          <line x1="125" y1="160" x2="270" y2="150" stroke="url(#flowGrad3)" stroke-width="2" filter="url(#glow)" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.6s" repeatCount="indefinite"/>
+          </line>
+          <!-- PROFILE → ADMIN -->
+          <line x1="300" y1="150" x2="340" y2="70" stroke="url(#flowGrad4)" stroke-width="2" filter="url(#glow)" opacity="0.7">
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.9s" repeatCount="indefinite"/>
+          </line>
+          <!-- ADMIN → SCAN -->
+          <line x1="310" y1="40" x2="85" y2="50" stroke="url(#flowGrad1)" stroke-width="1.5" filter="url(#glow)" opacity="0.4" stroke-dasharray="6,4">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur="3s" repeatCount="indefinite"/>
+          </line>
+          <!-- SCAN → PROFILE -->
+          <line x1="85" y1="70" x2="270" y2="140" stroke="url(#flowGrad2)" stroke-width="1" filter="url(#glow)" opacity="0.3" stroke-dasharray="4,4">
+            <animate attributeName="opacity" values="0.1;0.5;0.1" dur="3.5s" repeatCount="indefinite"/>
+          </line>
+        </svg>
+
+        <!-- SCAN NODE -->
+        <div class="network-node" style="left:30px;top:24px;background:rgba(255,107,44,0.12);border-color:rgba(255,107,44,0.3)">
+          <span class="icon">🔍</span>
+          <span style="color:var(--orange)">Scan</span>
+        </div>
+        <!-- HISTORY NODE -->
+        <div class="network-node" style="left:170px;top:62px;background:rgba(0,122,255,0.12);border-color:rgba(0,122,255,0.3)">
+          <span class="icon">📊</span>
+          <span style="color:var(--blue)">History</span>
+        </div>
+        <!-- LEAVE NODE -->
+        <div class="network-node" style="left:100px;top:132px;background:rgba(57,255,20,0.12);border-color:rgba(57,255,20,0.3)">
+          <span class="icon">🏖️</span>
+          <span style="color:var(--green)">Leave</span>
+        </div>
+        <!-- PROFILE NODE -->
+        <div class="network-node" style="left:250px;top:120px;background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3)">
+          <span class="icon">👤</span>
+          <span style="color:var(--purple)">Profile</span>
+        </div>
+        <!-- ADMIN NODE -->
+        <div class="network-node" style="left:300px;top:20px;background:rgba(255,107,44,0.12);border-color:rgba(255,107,44,0.3)">
+          <span class="icon">⚙️</span>
+          <span style="color:var(--orange)">Admin</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="subtitle" style="margin-bottom:10px">Task Progress: Leave Request</div>
+    <div class="glass-card" style="padding:14px;margin-bottom:12px">
+      <div class="task-step" style="margin-bottom:8px">
+        <div class="step-num" style="background:rgba(255,107,44,0.2);color:var(--orange)">1</div>
+        <span style="color:var(--orange)">FormProcessor</span>
+        <span style="color:var(--text-dim);font-size:10px">— Validate input</span>
+        <div class="status-badge" style="margin-left:auto;background:rgba(57,255,20,0.1);color:var(--green)">✓ Done</div>
+      </div>
+      <div class="task-step" style="margin-bottom:8px">
+        <div class="step-num" style="background:rgba(168,85,247,0.2);color:var(--purple)">2</div>
+        <span style="color:var(--purple)">LeavePolicy</span>
+        <span style="color:var(--text-dim);font-size:10px">— Check sisa_cuti</span>
+        <div class="status-badge" style="margin-left:auto;background:rgba(57,255,20,0.1);color:var(--green)">✓ Done</div>
+      </div>
+      <div class="task-step" style="margin-bottom:8px">
+        <div class="step-num" style="background:rgba(0,122,255,0.2);color:var(--blue)">3</div>
+        <span style="color:var(--blue)">LeaveAPI</span>
+        <span style="color:var(--text-dim);font-size:10px">— Submit to Firestore</span>
+        <div class="status-badge" style="margin-left:auto;background:rgba(0,122,255,0.1);color:var(--blue)">⏳ Active</div>
+      </div>
+      <div class="task-step">
+        <div class="step-num" style="background:rgba(255,255,255,0.05);color:var(--text-dim)">4</div>
+        <span style="color:var(--text-dim)">AdminAgent</span>
+        <span style="color:var(--text-dim);font-size:10px">— HR approval</span>
+        <div class="status-badge" style="margin-left:auto;background:rgba(255,255,255,0.05);color:var(--text-dim)">Waiting</div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="progress-bar" style="height:8px"><div class="fill" style="width:65%;animation:none;background:linear-gradient(90deg,var(--orange),var(--purple),var(--blue))"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:10px;color:var(--text-dim)">Step 3/4</span>
+          <span style="font-size:10px;color:var(--blue);font-weight:700">65%</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <div style="flex:1;text-align:center;padding:12px;border-radius:14px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.15)">
+        <div style="font-size:18px;font-weight:900;color:var(--blue)">5</div>
+        <div style="font-size:10px;color:var(--text-dim)">Agents</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:12px;border-radius:14px;background:rgba(57,255,20,0.06);border:1px solid rgba(57,255,20,0.15)">
+        <div style="font-size:18px;font-weight:900;color:var(--green)">12</div>
+        <div style="font-size:10px;color:var(--text-dim)">Tasks Done</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:12px;border-radius:14px;background:rgba(255,107,44,0.06);border:1px solid rgba(255,107,44,0.15)">
+        <div style="font-size:18px;font-weight:900;color:var(--orange)">3</div>
+        <div style="font-size:10px;color:var(--text-dim)">Pending</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <div class="nav-item"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item"><span class="nav-icon">📷</span>Scan</div>
+    <div class="nav-item"><span class="nav-icon">📋</span>History</div>
+    <div class="nav-item"><span class="nav-icon">🏖️</span>Leave</div>
+    <div class="nav-item"><span class="nav-icon">👤</span>Profile</div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.screen').forEach(s => {
+    s.addEventListener('mouseenter', () => {
+      s.style.transform = 'scale(1.01)';
+      s.style.transition = 'transform 0.3s ease';
+      s.style.zIndex = '10';
+    });
+    s.addEventListener('mouseleave', () => {
+      s.style.transform = 'scale(1)';
+      s.style.zIndex = '1';
+    });
+  });
+</script>
+</body>
+</html>
