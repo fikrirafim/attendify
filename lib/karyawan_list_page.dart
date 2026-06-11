@@ -103,13 +103,87 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                 const SizedBox(height: 14),
                 TextField(controller: nrpController, style: GoogleFonts.inter(fontSize: 14), decoration: InputDecoration(labelText: 'NRP', labelStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted), prefixIcon: const Icon(Icons.badge_outlined, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)))),
                 const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: divisiList.contains(selectedDivisi) ? selectedDivisi : null,
-                  style: GoogleFonts.inter(fontSize: 14, color: _textPrimary),
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: _textMuted),
-                  decoration: InputDecoration(labelText: 'Divisi', labelStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted), prefixIcon: const Icon(Icons.workspaces_outlined, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5))),
-                  items: divisiList.map((d) => DropdownMenuItem(value: d, child: Text(d, style: GoogleFonts.inter(fontSize: 13)))).toList(),
-                  onChanged: (val) { if (val != null) setStateDialog(() => selectedDivisi = val); },
+                InkWell(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (sheetCtx) {
+                        return Container(
+                          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.55),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 5,
+                                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                              ),
+                              Text('Pilih Divisi', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: _textPrimary)),
+                              const SizedBox(height: 12),
+                              Flexible(
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: divisiList.length,
+                                  itemBuilder: (context, i) {
+                                    final item = divisiList[i];
+                                    final isSelected = item == selectedDivisi;
+                                    return InkWell(
+                                      onTap: () {
+                                        Navigator.pop(sheetCtx);
+                                        setStateDialog(() => selectedDivisi = item);
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 15,
+                                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                                  color: isSelected ? _blue : _textPrimary,
+                                                ),
+                                              ),
+                                            ),
+                                            if (isSelected)
+                                              Icon(Icons.check_circle_rounded, color: _blue, size: 22),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Divisi',
+                      labelStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted),
+                      prefixIcon: const Icon(Icons.workspaces_outlined, size: 20),
+                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: _textMuted),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+                    ),
+                    child: Text(
+                      selectedDivisi,
+                      style: GoogleFonts.inter(fontSize: 14, color: _textPrimary),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text('*Email tidak dapat diubah karena terikat dengan sistem login kredensial.', style: GoogleFonts.inter(fontSize: 11, color: _textMuted, fontStyle: FontStyle.italic)),

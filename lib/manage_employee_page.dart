@@ -253,22 +253,29 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
   void _showDivisiSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) {
-        return SafeArea(
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
               Container(
                 width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+                height: 5,
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Align(
@@ -276,13 +283,15 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
                   child: Text('Pilih Divisi', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: _textPrimary)),
                 ),
               ),
-              const SizedBox(height: 8),
-              ...List.generate(_divisiList.length, (i) {
-                final item = _divisiList[i];
-                final isSelected = item == _selectedDivisi;
-                return Column(
-                  children: [
-                    InkWell(
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _divisiList.length,
+                  itemBuilder: (context, i) {
+                    final item = _divisiList[i];
+                    final isSelected = item == _selectedDivisi;
+                    return InkWell(
                       onTap: () {
                         setState(() => _selectedDivisi = item);
                         Navigator.pop(ctx);
@@ -296,26 +305,21 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
                                 item,
                                 style: GoogleFonts.inter(
                                   fontSize: 15,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                  color: isSelected ? _blue : _textPrimary,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                  color: isSelected ? Colors.blue.shade700 : const Color(0xFF374151),
                                 ),
                               ),
                             ),
                             if (isSelected)
-                              const Icon(Icons.check_rounded, color: _blue, size: 22),
+                              Icon(Icons.check_circle_rounded, color: Colors.blue.shade700, size: 22),
                           ],
                         ),
                       ),
-                    ),
-                    if (i < _divisiList.length - 1)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Container(height: 1, color: const Color(0xFFF3F4F6)),
-                      ),
-                  ],
-                );
-              }),
-              const SizedBox(height: 20),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
             ],
           ),
         );

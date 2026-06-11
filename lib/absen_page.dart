@@ -17,21 +17,23 @@ class AbsenPage extends StatefulWidget {
 }
 
 class _AbsenPageState extends State<AbsenPage> {
-  final double _targetLat = -7.028930157829252; 
-  final double _targetLng = 107.69787503822477;
-  final double _radiusMax = 100.0;
+  double? _targetLat;
+  double? _targetLng;
+  double? _radiusMax;
 
   String _lokasiSaatIni = 'Sedang mencari lokasi...';
   bool _isLoadingLokasi = true;
   bool _dalamRadius = false;
   double _jarakMeter = 0.0;
+  bool _lokasiKantorTersedia = true;
+  String? _companyId;
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _dapatkanLokasi();
+    _muatDataPerusahaan();
     _initKamera();
   }
 
@@ -58,7 +60,87 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
+  Future<void> _muatDataPerusahaan() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        setState(() {
+          _lokasiKantorTersedia = false;
+          _isLoadingLokasi = false;
+          _lokasiSaatIni = 'Sesi tidak valid';
+        });
+        return;
+      }
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        setState(() {
+          _lokasiKantorTersedia = false;
+          _isLoadingLokasi = false;
+          _lokasiSaatIni = 'Data pengguna tidak ditemukan';
+        });
+        return;
+      }
+
+      _companyId = userDoc.data()!['company_id'] as String?;
+      if (_companyId == null || _companyId!.isEmpty) {
+        setState(() {
+          _lokasiKantorTersedia = false;
+          _isLoadingLokasi = false;
+          _lokasiSaatIni = 'Company ID tidak ditemukan';
+        });
+        return;
+      }
+
+      final companyDoc = await FirebaseFirestore.instance
+          .collection('companies')
+          .doc(_companyId)
+          .get();
+
+      if (!companyDoc.exists) {
+        setState(() {
+          _lokasiKantorTersedia = false;
+          _isLoadingLokasi = false;
+          _lokasiSaatIni = 'Data perusahaan tidak ditemukan';
+        });
+        return;
+      }
+
+      final data = companyDoc.data()!;
+      final lat = data['latitude'];
+      final lng = data['longitude'];
+      final radius = data['radius'];
+
+      if (lat == null || lng == null || radius == null) {
+        setState(() {
+          _lokasiKantorTersedia = false;
+          _isLoadingLokasi = false;
+          _lokasiSaatIni = 'Lokasi kantor belum diatur oleh HR';
+        });
+        return;
+      }
+
+      _targetLat = (lat as num).toDouble();
+      _targetLng = (lng as num).toDouble();
+      _radiusMax = (radius as num).toDouble();
+
+      _dapatkanLokasi();
+    } catch (e) {
+      setState(() {
+        _lokasiKantorTersedia = false;
+        _isLoadingLokasi = false;
+        _lokasiSaatIni = 'Gagal memuat data perusahaan';
+      });
+    }
+  }
+
   Future<void> _dapatkanLokasi() async {
+    if (_targetLat == null || _targetLng == null || _radiusMax == null) return;
+
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -66,10 +148,10 @@ class _AbsenPageState extends State<AbsenPage> {
       }
       Position position = await Geolocator.getCurrentPosition();
       double distanceInMeters = Geolocator.distanceBetween(
-          _targetLat, _targetLng, position.latitude, position.longitude);
+          _targetLat!, _targetLng!, position.latitude, position.longitude);
       setState(() {
         _jarakMeter = distanceInMeters;
-        _dalamRadius = distanceInMeters <= _radiusMax;
+        _dalamRadius = distanceInMeters <= _radiusMax!;
         _lokasiSaatIni = 'Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)}';
         _isLoadingLokasi = false;
       });
@@ -82,9 +164,17 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   Future<void> _prosesAbsen() async {
+    if (!_lokasiKantorTersedia) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Presensi Gagal: Lokasi kantor belum diatur oleh HR.'),
+        backgroundColor: AppColors.red,
+      ));
+      return;
+    }
+
     if (!_dalamRadius) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Presensi Gagal: Anda berada di luar jangkauan area kampus.'),
+        content: Text('Presensi Gagal: Anda berada di luar jangkauan area kantor.'),
         backgroundColor: AppColors.red,
       ));
       return;
@@ -249,11 +339,14 @@ class _AbsenPageState extends State<AbsenPage> {
         debugPrint("Upload foto gagal: $e");
       }
 
+      Position currentPosition = await Geolocator.getCurrentPosition();
+
       await firestore.collection('absensi').doc(uniqueId).set({
         'nrp': inputNrp,
         'nama': namaSiswa,
-        'latitude': _targetLat,
-        'longitude': _targetLng,
+        'latitude': currentPosition.latitude,
+        'longitude': currentPosition.longitude,
+        'company_id': _companyId ?? '',
         'waktu_absen': formatWaktuCantik,
         'status': statusKehadiran,
         'jenis_absen': jenisAbsen,
@@ -277,8 +370,8 @@ class _AbsenPageState extends State<AbsenPage> {
             nrp: inputNrp,
             nama: namaSiswa,
             waktuAbsen: waktuSekarang,
-            lokasi: 'Terverifikasi di Area Kampus',
-            koordinat: '$_targetLat, $_targetLng',
+            lokasi: 'Terverifikasi di Area Kantor',
+            koordinat: '${currentPosition.latitude}, ${currentPosition.longitude}',
             capturedImage: capturedImage,
           ),
         ),
@@ -345,12 +438,12 @@ class _AbsenPageState extends State<AbsenPage> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoadingLokasi ? null : _prosesAbsen,
+                  onPressed: _isLoadingLokasi || !_lokasiKantorTersedia ? null : _prosesAbsen,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _dalamRadius ? AppColors.blue : AppColors.textMuted,
+                    backgroundColor: _dalamRadius && _lokasiKantorTersedia ? AppColors.blue : AppColors.textMuted,
                     disabledBackgroundColor: AppColors.textMuted,
-                    elevation: _dalamRadius ? 3 : 0,
-                    shadowColor: _dalamRadius ? AppColors.blue.withValues(alpha: 0.35) : Colors.transparent,
+                    elevation: _dalamRadius && _lokasiKantorTersedia ? 3 : 0,
+                    shadowColor: _dalamRadius && _lokasiKantorTersedia ? AppColors.blue.withValues(alpha: 0.35) : Colors.transparent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
@@ -367,7 +460,7 @@ class _AbsenPageState extends State<AbsenPage> {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  'Pastikan wajah terlihat jelas dan Anda berada di area kampus',
+                  'Pastikan wajah terlihat jelas dan lokasi kantor sudah diatur oleh HR',
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -508,13 +601,19 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   Widget _buildLocationCard() {
+    final bool hasError = !_lokasiKantorTersedia;
+    final Color cardBg = hasError ? AppColors.redLight : AppColors.greenLight;
+    final Color iconBg = hasError ? AppColors.red.withValues(alpha: 0.12) : AppColors.green.withValues(alpha: 0.12);
+    final Color accentColor = hasError ? AppColors.red : AppColors.green;
+    final Color borderColor = hasError ? const Color(0xFFFECACA) : const Color(0xFFBBF7D0);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.greenLight,
+        color: cardBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -522,10 +621,14 @@ class _AbsenPageState extends State<AbsenPage> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.green.withValues(alpha: 0.12),
+              color: iconBg,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.location_on_rounded, color: AppColors.green, size: 20),
+            child: Icon(
+              hasError ? Icons.warning_amber_rounded : Icons.location_on_rounded,
+              color: accentColor,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -535,31 +638,37 @@ class _AbsenPageState extends State<AbsenPage> {
                 _isLoadingLokasi
                     ? Row(
                         children: [
-                          const SizedBox(
+                          SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.green),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: accentColor),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'Mencari lokasi...',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.green),
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: accentColor),
                           ),
                         ],
                       )
                     : Text(
-                        _dalamRadius
-                            ? 'Di dalam radius kampus (${_jarakMeter.toStringAsFixed(0)}m)'
-                            : 'Di luar area kampus (${_jarakMeter.toStringAsFixed(0)}m)',
+                        hasError
+                            ? _lokasiSaatIni
+                            : _dalamRadius
+                                ? 'Di dalam radius kantor (${_jarakMeter.toStringAsFixed(0)}m)'
+                                : 'Di luar area kantor (${_jarakMeter.toStringAsFixed(0)}m)',
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: _dalamRadius ? AppColors.green : AppColors.red,
+                          color: hasError
+                              ? AppColors.red
+                              : _dalamRadius
+                                  ? AppColors.green
+                                  : AppColors.red,
                         ),
                       ),
                 const SizedBox(height: 2),
                 Text(
-                  _isLoadingLokasi ? '' : 'Akurasi: GPS OK • $_lokasiSaatIni',
+                  _isLoadingLokasi || hasError ? '' : 'Akurasi: GPS OK • $_lokasiSaatIni',
                   style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textMuted),
                 ),
               ],
@@ -609,8 +718,12 @@ class _AbsenPageState extends State<AbsenPage> {
               _buildVerifyChip(
                 icon: Icons.location_on_rounded,
                 label: 'Lokasi',
-                verified: _dalamRadius,
-                color: _dalamRadius ? AppColors.green : AppColors.textMuted,
+                verified: _dalamRadius && _lokasiKantorTersedia,
+                color: !_lokasiKantorTersedia
+                    ? AppColors.red
+                    : _dalamRadius
+                        ? AppColors.green
+                        : AppColors.textMuted,
               ),
               const SizedBox(width: 8),
               _buildVerifyChip(

@@ -344,11 +344,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: _isLoading
             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.login_rounded, size: 20),
-                const SizedBox(width: 8),
-                Text('Masuk', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
-              ]),
+            : Text('Masuk', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
       ),
     );
   }
