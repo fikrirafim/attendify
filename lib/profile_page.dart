@@ -90,10 +90,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 }
 
                 var userData = userSnapshot.data!.docs.first.data() as Map<String, dynamic>;
-                String nama = userData['nama'] ?? 'Karyawan';
-                String role = userData['role'] ?? 'Karyawan';
+                String role = userData['role'] ?? 'karyawan';
+                String nama = role == 'hr'
+                    ? (userData['nama_hr'] ?? userData['nama'] ?? 'HR')
+                    : (userData['nama'] ?? 'Karyawan');
                 String nrp = userData['nrp'] ?? '-';
                 String email = currentUser.email ?? '-';
+                String namaPerusahaan = userData['nama_perusahaan'] ?? 'Attendify User';
+                String divisi = role == 'hr' ? 'Human Resource' : (userData['divisi'] ?? '-');
 
                 return SafeArea(
                   child: SingleChildScrollView(
@@ -102,9 +106,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildProfileHeader(nama, role),
+                        _buildProfileHeader(nama, role, namaPerusahaan),
                         const SizedBox(height: 20),
-                        _buildInfoGrid(nrp, email),
+                        _buildInfoGrid(nrp, email, divisi),
                         const SizedBox(height: 16),
                         _buildStatCard(nrp),
                         const SizedBox(height: 20),
@@ -114,7 +118,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 16),
                         Center(
                           child: Text(
-                            'Attendify v1.0.0 • Universitas Jenderal Achmad Yani',
+                            'Attendify v1.0.0  •  $namaPerusahaan',
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
@@ -131,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader(String nama, String role) {
+  Widget _buildProfileHeader(String nama, String role, String namaPerusahaan) {
     String initials = nama.isNotEmpty
         ? nama.split('').take(2).join().toUpperCase()
         : 'BP';
@@ -140,15 +144,15 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 86,
+            height: 86,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [AppColors.blue, Color(0xFF7C3AED)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.blue.withValues(alpha: 0.3),
@@ -180,9 +184,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 4),
           Text(
-            role == 'karyawan' ? 'Undergraduate Student / Employee' : role,
+            namaPerusahaan,
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: AppColors.textSecondary,
             ),
@@ -226,14 +230,14 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildInfoGrid(String nrp, String email) {
+  Widget _buildInfoGrid(String nrp, String email, String divisi) {
     return Row(
       children: [
         Expanded(child: _buildInfoCell('NRP', nrp)),
         const SizedBox(width: 10),
         Expanded(child: _buildInfoCell('Email', email)),
         const SizedBox(width: 10),
-        Expanded(child: _buildInfoCell('Divisi', 'TI - 05')),
+        Expanded(child: _buildInfoCell('Divisi', divisi)),
       ],
     );
   }

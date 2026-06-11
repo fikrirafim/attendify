@@ -15,12 +15,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const Color _accentBlue = Color(0xFF2563EB);
+  static const Color _blue = Color(0xFF2563EB);
+  static const Color _blueDark = Color(0xFF1D4ED8);
   static const Color _textPrimary = Color(0xFF1A1D26);
   static const Color _textSecondary = Color(0xFF6B7280);
   static const Color _textMuted = Color(0xFF9CA3AF);
-  static const Color _borderColor = Color(0xFFE5E7EB);
-  static const Color _bgOffWhite = Color(0xFFF4F6F9);
+  static const Color _border = Color(0xFFE5E7EB);
+  static const Color _bg = Color(0xFFF4F6F9);
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -71,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
           errorMessage = 'Password yang Anda masukkan salah.';
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(errorMessage),
+          content: Text(errorMessage, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
           backgroundColor: const Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -80,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Terjadi kesalahan jaringan.'),
+          content: Text('Terjadi kesalahan jaringan.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
           backgroundColor: const Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -99,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
     ));
 
     return Scaffold(
-      backgroundColor: _bgOffWhite,
+      backgroundColor: _bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -130,13 +131,24 @@ class _LoginPageState extends State<LoginPage> {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: _accentBlue.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [_blue, _blueDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: _blue.withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: const Icon(
             Icons.fingerprint_rounded,
-            size: 38,
-            color: _accentBlue,
+            size: 36,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 20),
@@ -170,11 +182,12 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border, width: 0.8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -184,11 +197,11 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Welcome to Attendify',
+              'Welcome Back',
               style: GoogleFonts.inter(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF1A1D26),
+                color: _textPrimary,
                 letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
@@ -204,165 +217,78 @@ class _LoginPageState extends State<LoginPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-
+            _buildLabel('Email'),
+            const SizedBox(height: 8),
             _buildEmailField(),
-            const SizedBox(height: 18),
-
+            const SizedBox(height: 20),
+            _buildLabel('Password'),
+            const SizedBox(height: 8),
             _buildPasswordField(),
             const SizedBox(height: 14),
-
             _buildRememberRow(),
             const SizedBox(height: 24),
-
             _buildLoginButton(),
-            const SizedBox(height: 16),
-
-            _buildBiometricButton(),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildLabel(String text) {
+    return Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary));
+  }
+
   Widget _buildEmailField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Email',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: _textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: _textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: 'contoh@email.com',
-            hintStyle: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: _textMuted,
-            ),
-            prefixIcon: const Icon(Icons.email_outlined,
-                color: _textSecondary, size: 20),
-            filled: true,
-            fillColor: const Color(0xFFF9FAFB),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _accentBlue, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFDC2626)),
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Email tidak boleh kosong';
-            }
-            if (!value.contains('@') || !value.contains('.')) {
-              return 'Masukkan email yang valid';
-            }
-            return null;
-          },
-        ),
-      ],
+    return TextFormField(
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+      decoration: InputDecoration(
+        hintText: 'contoh@email.com',
+        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textMuted),
+        prefixIcon: const Icon(Icons.email_outlined, color: _textMuted, size: 20),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDC2626))),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Email tidak boleh kosong';
+        if (!value.contains('@') || !value.contains('.')) return 'Masukkan email yang valid';
+        return null;
+      },
     );
   }
 
   Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Password',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: _textPrimary,
-          ),
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: !_isPasswordVisible,
+      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+      decoration: InputDecoration(
+        hintText: 'Masukkan password Anda',
+        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textMuted),
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: _textMuted, size: 20),
+        suffixIcon: IconButton(
+          icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: _textMuted, size: 20),
+          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: !_isPasswordVisible,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: _textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: 'Masukkan password Anda',
-            hintStyle: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: _textMuted,
-            ),
-            prefixIcon: const Icon(Icons.lock_outline_rounded,
-                color: _textSecondary, size: 20),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _isPasswordVisible
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: _textMuted,
-                size: 20,
-              ),
-              onPressed: () {
-                setState(() => _isPasswordVisible = !_isPasswordVisible);
-              },
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF9FAFB),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _accentBlue, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFDC2626)),
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Password tidak boleh kosong';
-            }
-            if (value.length < 6) {
-              return 'Password minimal 6 karakter';
-            }
-            return null;
-          },
-        ),
-      ],
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDC2626))),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Password tidak boleh kosong';
+        if (value.length < 6) return 'Password minimal 6 karakter';
+        return null;
+      },
     );
   }
 
@@ -377,49 +303,27 @@ class _LoginPageState extends State<LoginPage> {
               height: 20,
               child: Checkbox(
                 value: _rememberMe,
-                onChanged: (value) {
-                  setState(() => _rememberMe = value!);
-                },
-                activeColor: _accentBlue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                side: const BorderSide(color: _borderColor),
+                onChanged: (value) => setState(() => _rememberMe = value!),
+                activeColor: _blue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                side: const BorderSide(color: _border),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              'Ingat Saya',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: _textSecondary,
-              ),
-            ),
+            Text('Ingat Saya', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: _textSecondary)),
           ],
         ),
         GestureDetector(
           onTap: () {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                'Fitur akan segera hadir.',
-                style: GoogleFonts.inter(fontSize: 13),
-              ),
-              backgroundColor: _accentBlue,
+              content: Text('Fitur akan segera hadir.', style: GoogleFonts.inter(fontSize: 13, color: Colors.white)),
+              backgroundColor: _blue,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ));
           },
-          child: Text(
-            'Lupa Password?',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _accentBlue,
-            ),
-          ),
+          child: Text('Lupa Password?', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
         ),
       ],
     );
@@ -428,100 +332,43 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLoginButton() {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 52,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _accentBlue,
-          disabledBackgroundColor: _accentBlue.withValues(alpha: 0.6),
-          elevation: 1,
-          shadowColor: _accentBlue.withValues(alpha: 0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          backgroundColor: _blueDark,
+          disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: _isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2.5, color: Colors.white),
-              )
-            : Text(
-                'LOGIN',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildBiometricButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: OutlinedButton.icon(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-              'Fitur biometrik segera hadir.',
-              style: GoogleFonts.inter(fontSize: 13),
-            ),
-            backgroundColor: _accentBlue,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ));
-        },
-        icon: const Icon(Icons.fingerprint_rounded, size: 20),
-        label: Text(
-          'Login dengan Sidik Jari',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: _accentBlue,
-          side: const BorderSide(color: _borderColor),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+            : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.login_rounded, size: 20),
+                const SizedBox(width: 8),
+                Text('Masuk', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+              ]),
       ),
     );
   }
 
   Widget _buildRegisterLink() {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const RegisterHRPage()));
-      },
-      child: Text(
-        'Perusahaan Baru? Daftar HR Di Sini',
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: _accentBlue,
-        ),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterHRPage())),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(color: _blue.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.business_outlined, size: 18, color: _blue.withValues(alpha: 0.7)),
+          const SizedBox(width: 8),
+          Text('Perusahaan Baru? Daftar HR Di Sini', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
+        ]),
       ),
     );
   }
 
   Widget _buildFooter() {
-    return Text(
-      '\u00A9 2026 Attendify - Universitas Jenderal Achmad Yani',
-      style: GoogleFonts.inter(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: _textMuted,
-      ),
-      textAlign: TextAlign.center,
-    );
+    return Text('\u00A9 2026 Attendify', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textMuted), textAlign: TextAlign.center);
   }
 }

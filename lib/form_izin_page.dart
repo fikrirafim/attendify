@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class FormIzinPage extends StatefulWidget {
-  const FormIzinPage({super.key});
+  final String? initialJenisIzin;
+
+  const FormIzinPage({super.key, this.initialJenisIzin});
 
   @override
   State<FormIzinPage> createState() => _FormIzinPageState();
@@ -27,6 +29,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
   DateTime _tanggalMulai = DateTime.now();
   DateTime _tanggalSelesai = DateTime.now();
   TimeOfDay _jamIzin = TimeOfDay.now();
+  TimeOfDay _jamSelesai = TimeOfDay.now();
   final TextEditingController _keteranganController = TextEditingController();
   XFile? _fotoBukti;
   bool _isLoading = false;
@@ -45,12 +48,16 @@ class _FormIzinPageState extends State<FormIzinPage> {
 
   bool get _isSkenarioB =>
       _jenisIzin == 'Izin Pulang Cepat' ||
-      _jenisIzin == 'Izin Masuk Terlambat' ||
-      _jenisIzin == 'Lembur';
+      _jenisIzin == 'Izin Masuk Terlambat';
+
+  bool get _isLembur => _jenisIzin == 'Lembur';
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialJenisIzin != null && _pilihanIzin.contains(widget.initialJenisIzin)) {
+      _jenisIzin = widget.initialJenisIzin!;
+    }
     _tarikDataSisaCuti();
   }
 
@@ -151,6 +158,29 @@ class _FormIzinPageState extends State<FormIzinPage> {
     }
   }
 
+  Future<void> _pilihJamSelesai(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _jamSelesai,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _accentBlue,
+              onPrimary: Colors.white,
+              surface: _surfaceWhite,
+              onSurface: _textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _jamSelesai = picked);
+    }
+  }
+
   void _showFotoSourceSheet() {
     showModalBottomSheet(
       context: context,
@@ -208,6 +238,14 @@ class _FormIzinPageState extends State<FormIzinPage> {
     if (_jenisIzin == 'Sakit' && _fotoBukti == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Foto/Surat Dokter wajib dilampirkan.'),
+        backgroundColor: Color(0xFFDC2626),
+      ));
+      return;
+    }
+
+    if (_jenisIzin == 'Lembur' && _fotoBukti == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Bukti lembur/foto wajib dilampirkan!'),
         backgroundColor: Color(0xFFDC2626),
       ));
       return;
@@ -282,11 +320,13 @@ class _FormIzinPageState extends State<FormIzinPage> {
         'keterangan': _keteranganController.text,
         'tanggal_mulai': formatTgl(_tanggalMulai),
         'tanggal_selesai':
-            _isSkenarioB ? formatTgl(_tanggalMulai) : formatTgl(_tanggalSelesai),
-        'jam_izin': _isSkenarioB ? formatJm(_jamIzin) : null,
+            _isSkenarioB || _isLembur ? formatTgl(_tanggalMulai) : formatTgl(_tanggalSelesai),
+        'jam_izin': _isSkenarioB || _isLembur ? formatJm(_jamIzin) : null,
+        'jam_selesai': _isLembur ? formatJm(_jamSelesai) : null,
         'bukti_url': downloadUrl,
         'status_approval': 'Menunggu',
         'created_at': FieldValue.serverTimestamp(),
+        'company_id': userData['company_id'] ?? '',
       });
 
       if (!mounted) return;
@@ -358,9 +398,12 @@ class _FormIzinPageState extends State<FormIzinPage> {
                       const SizedBox(height: 20),
                     ],
 
-                    _isSkenarioB
-                        ? _buildSkenarioBFields()
-                        : _buildSkenarioAFields(),
+                    if (_isLembur)
+                      _buildLemburFields()
+                    else if (_isSkenarioB)
+                      _buildSkenarioBFields()
+                    else
+                      _buildSkenarioAFields(),
 
                     const SizedBox(height: 20),
                     _buildSectionLabel('Keterangan / Alasan'),
@@ -605,6 +648,64 @@ class _FormIzinPageState extends State<FormIzinPage> {
     );
   }
 
+  Widget _buildLemburFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDatePickerCard(
+            'Tanggal Lembur', _tanggalMulai, () => _pilihTanggal(context, true)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildTimePickerCardCustom('Jam Mulai', _jamIzin, () => _pilihJam(context))),
+            const SizedBox(width: 12),
+            Expanded(child: _buildTimePickerCardCustom('Jam Selesai', _jamSelesai, () => _pilihJamSelesai(context))),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimePickerCardCustom(String title, TimeOfDay time, VoidCallback onTap) {
+    String formatted =
+        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} WIB';
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _surfaceWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: _textSecondary,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.access_time_rounded,
+                    size: 16, color: _accentBlue),
+                const SizedBox(width: 8),
+                Text(formatted,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: _textPrimary)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDatePickerCard(
       String title, DateTime date, VoidCallback onTap) {
     String formatted =
@@ -726,7 +827,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
   }
 
   Widget _buildLampiranSection() {
-    bool isWajib = _jenisIzin == 'Sakit';
+    bool isWajib = _jenisIzin == 'Sakit' || _jenisIzin == 'Lembur';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

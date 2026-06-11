@@ -50,10 +50,12 @@ class _HomePageState extends State<HomePage> {
 
           String namaSiswa = 'Karyawan';
           String nrpSiswa = '';
+          String namaPerusahaan = 'Attendify User';
           if (userSnap.hasData && userSnap.data!.docs.isNotEmpty) {
             var userData = userSnap.data!.docs.first.data() as Map<String, dynamic>;
             namaSiswa = userData['nama'] ?? 'Karyawan';
             nrpSiswa = userData['nrp'] ?? '';
+            namaPerusahaan = userData['nama_perusahaan'] ?? 'Attendify User';
           }
 
           String namaPanggilan = namaSiswa.split(' ').first;
@@ -65,7 +67,7 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildGreeting(namaPanggilan),
+                  _buildGreeting(namaPanggilan, namaPerusahaan),
                   const SizedBox(height: 20),
                   _buildCalendarCard(context),
                   const SizedBox(height: 16),
@@ -85,7 +87,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildGreeting(String nama) {
+  Widget _buildGreeting(String nama, String namaPerusahaan) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -103,7 +105,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 3),
             Text(
-              'Universitas Jenderal Achmad Yani',
+              namaPerusahaan,
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -506,7 +508,7 @@ class _HomePageState extends State<HomePage> {
                   ));
                   return;
                 }
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const FormIzinPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => FormIzinPage(initialJenisIzin: _selectedPengajuan)));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.blue,
