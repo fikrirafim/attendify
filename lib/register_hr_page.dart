@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'company_identity_page.dart';
 
 class RegisterHRPage extends StatefulWidget {
   const RegisterHRPage({super.key});
@@ -28,14 +29,19 @@ class _RegisterHRPageState extends State<RegisterHRPage> {
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'email': _emailController.text.trim(),
         'nama_hr': _namaHRController.text.trim(),
-        'nama_perusahaan': _perusahaanController.text.trim(),
+        // don't create a company document here; let HR fill company identity next
         'role': 'hr', 
         'jam_masuk_default': '08:00', 
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registrasi HR Berhasil! Silakan Login.'), backgroundColor: Colors.green));
-      Navigator.pop(context); 
+      // Navigate to company identity page so HR can fill company details immediately
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CompanyIdentityPage(uid: userCredential.user!.uid),
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     }
