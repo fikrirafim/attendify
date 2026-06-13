@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
 import 'hr_dashboard.dart';
-import 'register_hr_page.dart';
+import 'multi_step_registration_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -351,7 +351,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildRegisterLink() {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterHRPage())),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MultiStepRegistrationPage())),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(color: _blue.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),

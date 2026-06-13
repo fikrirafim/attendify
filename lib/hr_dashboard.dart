@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'login_page.dart';
 import 'absen_page.dart';
 import 'profile_page.dart';
@@ -155,6 +156,8 @@ class _HRHomeTab extends StatelessWidget {
               const SizedBox(height: 20),
               _buildStatistikHariIni(companyId),
               const SizedBox(height: 16),
+              _buildChartStatistik(companyId),
+              const SizedBox(height: 20),
               _buildTotalKaryawan(companyId),
               const SizedBox(height: 20),
               _buildSectionTitle('Menu Manajemen'),
@@ -293,6 +296,143 @@ class _HRHomeTab extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Total Karyawan Terdaftar', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)), const SizedBox(height: 2), Text('$total', style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1))])),
           Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.greenLight, borderRadius: BorderRadius.circular(8)), child: Text('Active', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.green)))
         ]));
+      },
+    );
+  }
+
+  Widget _buildChartStatistik(String companyId) {
+    final now = DateTime.now();
+    final String tanggalHariIni = '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('absensi').where('company_id', isEqualTo: companyId).snapshots(),
+      builder: (context, snapshot) {
+        int hadir = 0, terlambat = 0, izin = 0;
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = (data['status'] ?? '').toString().toLowerCase();
+            final waktuAbsen = (data['waktu_absen'] ?? '').toString();
+            if (waktuAbsen.startsWith(tanggalHariIni)) {
+              if (status.contains('tepat') || status.contains('selesai')) hadir++;
+              else if (status.contains('telat') || status.contains('terlambat')) { hadir++; terlambat++; }
+            }
+          }
+        }
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('pengajuan_izin').where('status_approval', isEqualTo: 'Menunggu').where('company_id', isEqualTo: companyId).snapshots(),
+          builder: (context, izinSnap) {
+            if (izinSnap.hasData) {
+              for (final doc in izinSnap.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                final tglMulai = (data['tanggal_mulai'] ?? '').toString();
+                if (tglMulai == tanggalHariIni) izin++;
+              }
+            }
+
+            return _buildCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCardTitle(Icons.bar_chart_rounded, 'Grafik Kehadiran Hari Ini'),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 250,
+                    child: BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: (hadir + terlambat + izin + 5).toDouble(),
+                        barTouchData: BarTouchData(enabled: true),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (value, meta) {
+                                switch (value.toInt()) {
+                                  case 0:
+                                    return Text('Hadir', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted));
+                                  case 1:
+                                    return Text('Terlambat', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted));
+                                  case 2:
+                                    return Text('Izin/Cuti', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted));
+                                  default:
+                                    return const Text('');
+                                }
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (value, meta) {
+                                return Text(
+                                  '${value.toInt()}',
+                                  style: GoogleFonts.inter(fontSize: 10, color: AppColors.textMuted),
+                                );
+                              },
+                              reservedSize: 32,
+                            ),
+                          ),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: (hadir + terlambat + izin + 5) / 5,
+                          getDrawingHorizontalLine: (value) {
+                            return FlLine(
+                              color: AppColors.border,
+                              strokeWidth: 1,
+                            );
+                          },
+                        ),
+                        borderData: FlBorderData(show: false),
+                        barGroups: [
+                          BarChartGroupData(
+                            x: 0,
+                            barRods: [
+                              BarChartRodData(
+                                toY: hadir.toDouble(),
+                                color: AppColors.green,
+                                width: 32,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                              ),
+                            ],
+                          ),
+                          BarChartGroupData(
+                            x: 1,
+                            barRods: [
+                              BarChartRodData(
+                                toY: terlambat.toDouble(),
+                                color: AppColors.orange,
+                                width: 32,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                              ),
+                            ],
+                          ),
+                          BarChartGroupData(
+                            x: 2,
+                            barRods: [
+                              BarChartRodData(
+                                toY: izin.toDouble(),
+                                color: AppColors.blue,
+                                width: 32,
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
       },
     );
   }
