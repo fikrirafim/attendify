@@ -399,87 +399,94 @@ class _AbsenPageState extends State<AbsenPage> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Presensi Kehadiran',
-                style: GoogleFonts.inter(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                _formatTanggal(),
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            final cameraSize = (screenWidth * 0.55).clamp(180.0, 260.0);
 
-              Center(child: _buildCameraViewfinder()),
-              const SizedBox(height: 20),
-
-              _buildLocationCard(),
-              const SizedBox(height: 16),
-
-              _buildVerificationCard(),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _isLoadingLokasi || !_lokasiKantorTersedia ? null : _prosesAbsen,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _dalamRadius && _lokasiKantorTersedia ? AppColors.blue : AppColors.textMuted,
-                    disabledBackgroundColor: AppColors.textMuted,
-                    elevation: _dalamRadius && _lokasiKantorTersedia ? 3 : 0,
-                    shadowColor: _dalamRadius && _lokasiKantorTersedia ? AppColors.blue.withValues(alpha: 0.35) : Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'KIRIM PRESENSI',
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Presensi Kehadiran',
                     style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 0.3,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  'Pastikan wajah terlihat jelas dan lokasi kantor sudah diatur oleh HR',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted,
+                  const SizedBox(height: 3),
+                  Text(
+                    _formatTanggal(),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
+                  const SizedBox(height: 20),
+
+                  Center(child: _buildCameraViewfinder(cameraSize)),
+                  const SizedBox(height: 20),
+
+                  _buildLocationCard(),
+                  const SizedBox(height: 16),
+
+                  _buildVerificationCard(),
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _isLoadingLokasi || !_lokasiKantorTersedia ? null : _prosesAbsen,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _dalamRadius && _lokasiKantorTersedia ? AppColors.blue : AppColors.textMuted,
+                        disabledBackgroundColor: AppColors.textMuted,
+                        elevation: _dalamRadius && _lokasiKantorTersedia ? 3 : 0,
+                        shadowColor: _dalamRadius && _lokasiKantorTersedia ? AppColors.blue.withValues(alpha: 0.35) : Colors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        'KIRIM PRESENSI',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      'Pastikan wajah terlihat jelas dan lokasi kantor sudah diatur oleh HR',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildCameraViewfinder() {
+  Widget _buildCameraViewfinder(double size) {
     return Container(
-      width: 240,
-      height: 240,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -522,32 +529,32 @@ class _AbsenPageState extends State<AbsenPage> {
               ),
             ),
             Positioned(
-              top: 16,
-              left: 16,
+              top: size * 0.065,
+              left: size * 0.065,
               child: _buildCameraCorner(true, true),
             ),
             Positioned(
-              top: 16,
-              right: 16,
+              top: size * 0.065,
+              right: size * 0.065,
               child: _buildCameraCorner(true, false),
             ),
             Positioned(
-              bottom: 16,
-              left: 16,
+              bottom: size * 0.065,
+              left: size * 0.065,
               child: _buildCameraCorner(false, true),
             ),
             Positioned(
-              bottom: 16,
-              right: 16,
+              bottom: size * 0.065,
+              right: size * 0.065,
               child: _buildCameraCorner(false, false),
             ),
             Center(
               child: Container(
-                width: 120,
-                height: 150,
+                width: size * 0.48,
+                height: size * 0.6,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2.5),
-                  borderRadius: BorderRadius.circular(60),
+                  borderRadius: BorderRadius.circular(size * 0.24),
                 ),
               ),
             ),

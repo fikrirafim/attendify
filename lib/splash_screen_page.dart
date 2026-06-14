@@ -115,15 +115,26 @@ class _SplashScreenPageState extends State<SplashScreenPage> with SingleTickerPr
                 children: [
                   const Spacer(flex: 3),
                   Container(
-                    width: 88,
-                    height: 88,
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
                     ),
-                    child: const Center(
-                      child: Icon(Icons.fingerprint_rounded, size: 48, color: Colors.white),
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.fingerprint_rounded, size: 48, color: Colors.white);
+                          },
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
