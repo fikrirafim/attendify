@@ -503,7 +503,17 @@ class _AbsenPageState extends State<AbsenPage> {
           children: [
             Positioned.fill(
               child: _isCameraInitialized && _cameraController != null
-                  ? CameraPreview(_cameraController!)
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _cameraController!.value.previewSize!.height,
+                          height: _cameraController!.value.previewSize!.width,
+                          child: CameraPreview(_cameraController!),
+                        ),
+                      ),
+                    )
                   : Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
