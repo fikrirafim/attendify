@@ -66,5 +66,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- Location permission descriptions shown to users when the app requests location -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses lokasi untuk melakukan verifikasi absensi berdasarkan posisi Anda.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aplikasi ini membutuhkan akses lokasi untuk fitur lokasi latar belakang (opsional) saat verifikasi absensi.</string>
+
 </dict>
 </plist>

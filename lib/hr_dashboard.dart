@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'main.dart';
 import 'login_page.dart';
 import 'absen_page.dart';
 import 'profile_page.dart';
@@ -12,6 +11,25 @@ import 'karyawan_list_page.dart';
 import 'approval_izin_page.dart';
 import 'setting_jam_page.dart';
 import 'setting_lokasi_page.dart';
+import 'company_identity_page.dart';
+
+class AppColors {
+  static const Color bg = Color(0xFFF4F6F9);
+  static const Color surface = Colors.white;
+  static const Color textPrimary = Color(0xFF1A1D26);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color blue = Color(0xFF2563EB);
+  static const Color blueLight = Color(0xFFEFF6FF);
+  static const Color green = Color(0xFF16A34A);
+  static const Color greenLight = Color(0xFFF0FDF4);
+  static const Color orange = Color(0xFFEA580C);
+  static const Color orangeLight = Color(0xFFFFF7ED);
+  static const Color red = Color(0xFFDC2626);
+  static const Color redLight = Color(0xFFFEF2F2);
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color borderLight = Color(0xFFF3F4F6);
+}
 
 class HRDashboard extends StatefulWidget {
   const HRDashboard({super.key});
@@ -210,26 +228,9 @@ class _HRHomeTab extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             _buildCardTitle(Icons.info_outline, 'Perusahaan Belum Lengkap'),
             const SizedBox(height: 8),
-            Text('Data perusahaan tidak ditemukan. Silakan daftar ulang sebagai HR untuk membuat data perusahaan baru.', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+            Text('Anda belum mengisi identitas perusahaan. Silakan tambahkan data perusahaan agar fitur manajemen karyawan dapat digunakan.', style: GoogleFonts.inter(color: AppColors.textSecondary)),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
-                  if (context.mounted) {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.blue,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: Text('Logout & Daftar Ulang', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-              ),
-            ),
+            ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CompanyIdentityPage())), child: const Text('Tambah Identitas Perusahaan')),
           ]),
         ),
       ]),
