@@ -6,7 +6,7 @@ import 'firebase_options.dart';
 import 'absen_page.dart';
 import 'profile_page.dart';
 import 'home_page.dart';
-import 'login_page.dart';
+import 'splash_screen_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      home: const SplashScreenPage(),
     );
   }
 }

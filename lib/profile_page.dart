@@ -265,11 +265,12 @@ class _ProfilePageState extends State<ProfilePage> {
           Text(
             value,
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
             textAlign: TextAlign.center,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],

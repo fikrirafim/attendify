@@ -98,7 +98,7 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
       setState(() {
         _latController.text = position.latitude.toStringAsFixed(8);
         _lngController.text = position.longitude.toStringAsFixed(8);
@@ -193,14 +193,14 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))]),
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
                       child: Row(children: [
-                        Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 22)),
+                        Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 22)),
                         const SizedBox(width: 14),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('Geofencing Kantor', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
                           const SizedBox(height: 2),
-                          Text('Tentukan titik pusat dan radius area absensi karyawan', style: GoogleFonts.inter(fontSize: 12, color: Colors.white.withOpacity(0.8))),
+                          Text('Tentukan titik pusat dan radius area absensi karyawan', style: GoogleFonts.inter(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
                         ])),
                       ]),
                     ),
@@ -215,7 +215,7 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
                         label: Text(_isFetchingLocation ? 'Mengambil lokasi...' : 'Ambil Lokasi Saat Ini', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _blue,
-                          side: BorderSide(color: _blue.withOpacity(0.3)),
+                          side: BorderSide(color: _blue.withValues(alpha: 0.3)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -237,9 +237,9 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: _blue.withOpacity(0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: _blue.withOpacity(0.1))),
+                      decoration: BoxDecoration(color: _blue.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: _blue.withValues(alpha: 0.1))),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Icon(Icons.info_outline_rounded, size: 18, color: _blue.withOpacity(0.6)),
+                        Icon(Icons.info_outline_rounded, size: 18, color: _blue.withValues(alpha: 0.6)),
                         const SizedBox(width: 10),
                         Expanded(child: Text('Radius menentukan jarak maksimal karyawan dari titik kantor agar absensi dianggap valid. Default: 50 meter.', style: GoogleFonts.inter(fontSize: 12, color: _textSecondary, height: 1.5))),
                       ]),
@@ -257,7 +257,7 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
                     onPressed: _isSaving ? null : _simpanLokasi,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _blueDark,
-                      disabledBackgroundColor: _blueDark.withOpacity(0.6),
+                      disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),

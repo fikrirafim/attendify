@@ -139,7 +139,7 @@ class HistoryPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.08),
+                              color: Colors.grey.withValues(alpha: 0.08),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
@@ -150,7 +150,7 @@ class HistoryPage extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: _statusColor(status).withOpacity(0.16),
+                                color: _statusColor(status).withValues(alpha: 0.16),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Icon(_statusIcon(status), color: _statusColor(status), size: 26),
@@ -214,9 +214,9 @@ class HistoryPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [

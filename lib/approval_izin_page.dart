@@ -118,7 +118,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
 
             var userQuery = await firestore.collection('users').where('nrp', isEqualTo: nrp).limit(1).get();
             if (userQuery.docs.isNotEmpty) {
-              var userData = userQuery.docs.first.data() as Map<String, dynamic>;
+              var userData = userQuery.docs.first.data();
               int sisaCutiSaatIni = userData['sisa_cuti'] ?? 12;
               await firestore.collection('users').doc(userQuery.docs.first.id).update({
                 'sisa_cuti': sisaCutiSaatIni - lamaCuti,
@@ -277,7 +277,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                       return Center(child: Padding(
                         padding: const EdgeInsets.all(40),
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Container(width: 80, height: 80, decoration: BoxDecoration(color: _blue.withOpacity(0.08), borderRadius: BorderRadius.circular(24)), child: Icon(Icons.mark_email_read_outlined, size: 36, color: _blue.withOpacity(0.4))),
+                          Container(width: 80, height: 80, decoration: BoxDecoration(color: _blue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(24)), child: Icon(Icons.mark_email_read_outlined, size: 36, color: _blue.withValues(alpha: 0.4))),
                           const SizedBox(height: 20),
                           Text('Tidak ada pengajuan izin saat ini', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: _textSecondary)),
                           const SizedBox(height: 6),
@@ -304,7 +304,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
                           child: InkWell(
                             onTap: () => _lihatDetail(context, docId, data),
                             borderRadius: BorderRadius.circular(16),
@@ -318,7 +318,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                                     Expanded(child: Text(nama, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _textPrimary), overflow: TextOverflow.ellipsis)),
                                     if (adaFoto) ...[
                                       const SizedBox(width: 6),
-                                      Icon(Icons.attachment_rounded, size: 14, color: _blue.withOpacity(0.6)),
+                                      Icon(Icons.attachment_rounded, size: 14, color: _blue.withValues(alpha: 0.6)),
                                     ],
                                   ]),
                                   const SizedBox(height: 4),
@@ -333,7 +333,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                                 const SizedBox(width: 8),
                                 OutlinedButton(
                                   onPressed: () => _lihatDetail(context, docId, data),
-                                  style: OutlinedButton.styleFrom(foregroundColor: _blue, side: BorderSide(color: _blue.withOpacity(0.3)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                                  style: OutlinedButton.styleFrom(foregroundColor: _blue, side: BorderSide(color: _blue.withValues(alpha: 0.3)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                                   child: Text('Review', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
                                 ),
                               ]),

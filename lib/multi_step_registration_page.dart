@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
-import 'home_page.dart';
 import 'login_page.dart';
 
 class MultiStepRegistrationPage extends StatefulWidget {
@@ -17,21 +17,18 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
   int _currentStep = 1;
   bool _isLoading = false;
 
-  // Page 1: HR Info
   final _namaHRController = TextEditingController();
   final _emailHRController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
 
-  // Page 2: Company Info
   final _namaPerusahaanController = TextEditingController();
   final _emailKantorController = TextEditingController();
   final _alamatController = TextEditingController();
   double? _latitude;
   double? _longitude;
 
-  // Validation
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
 
@@ -47,93 +44,15 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
     super.dispose();
   }
 
-  Future<void> _submitRegistration() async {
-    setState(() => _isLoading = true);
-    try {
-      // Step 1: Create Firebase Auth user
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailHRController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      final uid = userCredential.user!.uid;
-
-      // Step 2: Create company document
-      final companyRef = FirebaseFirestore.instance.collection('companies').doc();
-      final companyId = companyRef.id;
-
-      await companyRef.set({
-        'id': companyId,
-        'nama_perusahaan': _namaPerusahaanController.text.trim(),
-        'email_kantor': _emailKantorController.text.trim(),
-        'alamat': _alamatController.text.trim(),
-        'latitude': _latitude,
-        'longitude': _longitude,
-        'radius_meter': 500,
-        'created_at': FieldValue.serverTimestamp(),
-        'created_by': uid,
-      });
-
-      // Step 3: Create user document
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'uid': uid,
-        'nama_hr': _namaHRController.text.trim(),
-        'email': _emailHRController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'role': 'hr',
-        'company_id': companyId,
-        'jam_masuk_default': '07:00',
-        'jam_pulang_default': '16:00',
-        'created_at': FieldValue.serverTimestamp(),
-      });
-
-      if (!mounted) return;
-
-      // Auto-login & redirect to home
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registrasi berhasil! Selamat datang.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainNavigation()),
-      );
-    } on FirebaseAuthException catch (e) {
-      String errorMsg = 'Terjadi kesalahan';
-      if (e.code == 'email-already-in-use') {
-        errorMsg = 'Email sudah terdaftar';
-      } else if (e.code == 'weak-password') {
-        errorMsg = 'Password terlalu lemah (min 6 karakter)';
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-    setState(() => _isLoading = false);
-  }
-
   Future<void> _submitAndGoToLogin() async {
     setState(() => _isLoading = true);
     try {
-      // Step 1: Create Firebase Auth user
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailHRController.text.trim(),
         password: _passwordController.text.trim(),
       );
       final uid = userCredential.user!.uid;
 
-      // Step 2: Create company document
       final companyRef = FirebaseFirestore.instance.collection('companies').doc();
       final companyId = companyRef.id;
 
@@ -149,7 +68,6 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
         'created_by': uid,
       });
 
-      // Step 3: Create user document
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'uid': uid,
         'nama_hr': _namaHRController.text.trim(),
@@ -157,6 +75,7 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
         'phone': _phoneController.text.trim(),
         'role': 'hr',
         'company_id': companyId,
+        'nama_perusahaan': _namaPerusahaanController.text.trim(),
         'jam_masuk_default': '07:00',
         'jam_pulang_default': '16:00',
         'created_at': FieldValue.serverTimestamp(),
@@ -164,15 +83,15 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
 
       if (!mounted) return;
 
-      // Sign out & navigate to login page
       await FirebaseAuth.instance.signOut();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registrasi berhasil! Silakan login.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Registrasi berhasil! Silakan login.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: AppColors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
 
       Navigator.pushReplacement(
         context,
@@ -187,18 +106,24 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errorMsg, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+          backgroundColor: AppColors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error: $e', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+          backgroundColor: AppColors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
       }
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   void _goToPage(int page) {
@@ -217,93 +142,97 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
+
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.blue[800]!, Colors.blue[600]!, Colors.blue[400]!],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Progress Indicator
-              _buildProgressIndicator(),
-              const SizedBox(height: 32),
-
-              // Content Pages
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: _buildCurrentPage(),
-                ),
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _buildCurrentPage(),
               ),
-
-              // Bottom Navigation
-              _buildBottomNavigation(),
-            ],
-          ),
+            ),
+            _buildBottomNavigation(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildProgressIndicator() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 60.0, vertical: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (index) {
-              final stepNum = index + 1;
-              final isActive = stepNum == _currentStep;
-              final isCompleted = stepNum < _currentStep;
-
-              return Expanded(
-                flex: 1,
-                child: Row(
-                  children: [
-                    // Circle
-                    Expanded(
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isActive || isCompleted ? Colors.white : Colors.white.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: isCompleted
-                              ? const Icon(Icons.check, color: Colors.blue, size: 20)
-                              : Text(
-                                  '$stepNum',
-                                  style: TextStyle(
-                                    color: isActive || isCompleted ? Colors.blue : Colors.white.withOpacity(0.6),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                    // Line (skip last one)
-                    if (index < 2)
-                      Expanded(
-                        child: Container(
-                          height: 3,
-                          color: isCompleted ? Colors.white : Colors.white.withOpacity(0.3),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                        ),
-                      ),
-                  ],
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppColors.textPrimary),
                 ),
-              );
-            }),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Daftar Akun HR',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 24),
+          _buildProgressIndicator(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Row(
+      children: List.generate(3, (index) {
+        final stepNum = index + 1;
+        final isActive = stepNum == _currentStep;
+        final isCompleted = stepNum < _currentStep;
+
+        return Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isCompleted
+                        ? AppColors.blue
+                        : isActive
+                            ? AppColors.blue.withValues(alpha: 0.4)
+                            : AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              if (index < 2) const SizedBox(width: 6),
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -324,74 +253,80 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
     return Form(
       key: _formKey1,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 28),
           Text(
             'Informasi Akun HR',
             style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             'Isi data diri Anda untuk membuat akun HR',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 32),
-          Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  _buildTextField(
-                    _namaHRController,
-                    'Nama Lengkap HR',
-                    Icons.person_outline,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Nama tidak boleh kosong';
-                      if (value.length < 3) return 'Nama minimal 3 karakter';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    _emailHRController,
-                    'Email HR',
-                    Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Email tidak boleh kosong';
-                      if (!value.contains('@')) return 'Email tidak valid';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    _phoneController,
-                    'Nomor Telepon (opsional)',
-                    Icons.phone_outlined,
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final digits = value.replaceAll(RegExp(r'\D'), '');
-                        if (digits.length < 10 || digits.length > 13) {
-                          return 'Nomor telepon harus 10-13 digit';
-                        }
+          const SizedBox(height: 28),
+          _buildCard(
+            child: Column(
+              children: [
+                _buildLabel('Nama Lengkap HR'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  _namaHRController,
+                  'Masukkan nama lengkap',
+                  Icons.person_outline_rounded,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Nama tidak boleh kosong';
+                    if (value.length < 3) return 'Nama minimal 3 karakter';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildLabel('Email HR'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  _emailHRController,
+                  'contoh@email.com',
+                  Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email tidak boleh kosong';
+                    if (!value.contains('@')) return 'Email tidak valid';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildLabel('Nomor Telepon'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  _phoneController,
+                  '08xxxxxxxxxx',
+                  Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      final digits = value.replaceAll(RegExp(r'\D'), '');
+                      if (digits.length < 10 || digits.length > 13) {
+                        return 'Nomor telepon harus 10-13 digit';
                       }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPasswordField(),
-                ],
-              ),
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildLabel('Password'),
+                const SizedBox(height: 8),
+                _buildPasswordField(),
+              ],
             ),
           ),
           const SizedBox(height: 32),
@@ -404,112 +339,75 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
     return Form(
       key: _formKey2,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 28),
           Text(
             'Informasi Kantor',
             style: GoogleFonts.inter(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             'Isi data kantor/perusahaan Anda',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 32),
-          Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  _buildTextField(
-                    _namaPerusahaanController,
-                    'Nama Kantor/Perusahaan',
-                    Icons.apartment,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Nama kantor tidak boleh kosong';
-                      if (value.length < 3) return 'Nama kantor minimal 3 karakter';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    _emailKantorController,
-                    'Email Kantor',
-                    Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Email kantor tidak boleh kosong';
-                      if (!value.contains('@')) return 'Email tidak valid';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    _alamatController,
-                    'Alamat Kantor',
-                    Icons.location_on_outlined,
-                    maxLines: 3,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Alamat tidak boleh kosong';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue[300]!, width: 1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Lokasi Kantor (Opsional)',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _latitude != null && _longitude != null
-                              ? 'Latitude: ${_latitude!.toStringAsFixed(6)}, Longitude: ${_longitude!.toStringAsFixed(6)}'
-                              : 'Belum ada lokasi yang dipilih',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ElevatedButton.icon(
-                          onPressed: () => _mockPickLocation(),
-                          icon: const Icon(Icons.map),
-                          label: Text(
-                            _latitude != null ? 'Ubah Lokasi' : 'Pilih Lokasi',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          const SizedBox(height: 28),
+          _buildCard(
+            child: Column(
+              children: [
+                _buildLabel('Nama Kantor/Perusahaan'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  _namaPerusahaanController,
+                  'Masukkan nama kantor',
+                  Icons.apartment_rounded,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Nama kantor tidak boleh kosong';
+                    if (value.length < 3) return 'Nama kantor minimal 3 karakter';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildLabel('Email Kantor'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  _emailKantorController,
+                  'kantor@email.com',
+                  Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email kantor tidak boleh kosong';
+                    if (!value.contains('@')) return 'Email tidak valid';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildLabel('Alamat Kantor'),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  _alamatController,
+                  'Masukkan alamat lengkap kantor',
+                  Icons.location_on_outlined,
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Alamat tidak boleh kosong';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                _buildLabel('Lokasi Kantor (Opsional)'),
+                const SizedBox(height: 8),
+                _buildLocationPicker(),
+              ],
             ),
           ),
           const SizedBox(height: 32),
@@ -520,75 +418,126 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
 
   Widget _buildPage3() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Success Icon
+        const SizedBox(height: 32),
         Container(
           width: 80,
           height: 80,
-          margin: const EdgeInsets.only(bottom: 24),
-          decoration: BoxDecoration(
-            color: Colors.white,
+          decoration: const BoxDecoration(
+            color: AppColors.blueLight,
             shape: BoxShape.circle,
           ),
-          child: Center(
-            child: Icon(Icons.check_circle, size: 50, color: Colors.green[600]),
+          child: const Center(
+            child: Icon(Icons.fact_check_outlined, size: 40, color: AppColors.blue),
           ),
         ),
+        const SizedBox(height: 20),
         Text(
-          'Registrasi Berhasil!',
+          'Konfirmasi Data',
           style: GoogleFonts.inter(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+            letterSpacing: -0.3,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Text(
-          'Data Anda telah berhasil disimpan dalam sistem.',
+          'Pastikan kembali semua data di bawah ini sudah benar sebelum membuat akun.',
           style: GoogleFonts.inter(
             fontSize: 14,
-            color: Colors.white.withOpacity(0.9),
+            fontWeight: FontWeight.w500,
+            color: AppColors.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 32),
-        Card(
-          elevation: 8,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Data yang Terdaftar:',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
-                  ),
+        const SizedBox(height: 28),
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Data Akun HR',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
                 ),
-                const SizedBox(height: 12),
-                _buildSummaryRow('Nama HR', _namaHRController.text),
-                _buildSummaryRow('Email', _emailHRController.text),
-                _buildSummaryRow('Kantor', _namaPerusahaanController.text),
-                _buildSummaryRow('Email Kantor', _emailKantorController.text),
-              ],
-            ),
+              ),
+              const SizedBox(height: 14),
+              _buildSummaryRow('Nama HR', _namaHRController.text),
+              _buildSummaryDivider(),
+              _buildSummaryRow('Email', _emailHRController.text),
+              _buildSummaryDivider(),
+              _buildSummaryRow('Telepon', _phoneController.text.isNotEmpty ? _phoneController.text : '-'),
+            ],
           ),
         ),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          onPressed: _isLoading ? null : _submitAndGoToLogin,
-          icon: _isLoading ? const SizedBox() : const Icon(Icons.login),
-          label: Text(_isLoading ? 'Menyimpan...' : 'Masuk ke Akun'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green[600],
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        const SizedBox(height: 16),
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Data Kantor',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _buildSummaryRow('Nama Kantor', _namaPerusahaanController.text),
+              _buildSummaryDivider(),
+              _buildSummaryRow('Email Kantor', _emailKantorController.text),
+              _buildSummaryDivider(),
+              _buildSummaryRow('Alamat', _alamatController.text),
+              _buildSummaryDivider(),
+              _buildSummaryRow('Lokasi', _latitude != null && _longitude != null
+                  ? '${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}'
+                  : 'Belum diset'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _submitAndGoToLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.blue,
+              disabledBackgroundColor: AppColors.blue.withValues(alpha: 0.6),
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: _isLoading
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.check_circle_outline_rounded, size: 20, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text('Konfirmasi & Buat Akun', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: OutlinedButton(
+            onPressed: _isLoading ? null : _showCancelDialog,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              side: const BorderSide(color: AppColors.border),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: Text('Batal Registrasi', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
           ),
         ),
         const SizedBox(height: 32),
@@ -596,91 +545,60 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+  void _showCancelDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Batalkan Registrasi?', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: Text('Semua data yang sudah Anda isi akan hilang.', style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Kembali', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
           ),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.blue[800],
-            ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: Text('Ya, Batalkan', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.red)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomNavigation() {
+  Widget _buildCard({required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.3))),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (_currentStep > 1)
-            ElevatedButton.icon(
-              onPressed: () => setState(() => _currentStep--),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Kembali'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300],
-                foregroundColor: Colors.grey[800],
-              ),
-            )
-          else
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close),
-              label: const Text('Batal'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300],
-                foregroundColor: Colors.grey[800],
-              ),
-            ),
-          const SizedBox(width: 12),
-          if (_currentStep < 3)
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _goToPage(_currentStep + 1),
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Lanjut'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-        ],
-      ),
+      child: child,
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
     );
   }
 
   Widget _buildTextField(
     TextEditingController controller,
-    String label,
+    String hint,
     IconData icon, {
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
@@ -690,25 +608,20 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      validator: validator,
+      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
       decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.blue),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.blue, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.red),
-        ),
+        hintText: hint,
+        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textMuted),
+        prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
+        filled: true,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red)),
       ),
+      validator: validator,
     );
   }
 
@@ -716,50 +629,173 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
     return TextFormField(
       controller: _passwordController,
       obscureText: !_isPasswordVisible,
+      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        hintText: 'Masukkan password Anda',
+        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textMuted),
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted, size: 20),
+        suffixIcon: IconButton(
+          icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.textMuted, size: 20),
+          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red)),
+      ),
       validator: (value) {
         if (value == null || value.isEmpty) return 'Password tidak boleh kosong';
         if (value.length < 8) return 'Password minimal 8 karakter';
         return null;
       },
-      decoration: InputDecoration(
-        labelText: 'Password',
-        prefixIcon: Icon(Icons.lock_outline, color: AppColors.blue),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: AppColors.blue,
+    );
+  }
+
+  Widget _buildLocationPicker() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.blueLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.my_location_rounded, size: 18, color: AppColors.blue),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _latitude != null && _longitude != null
+                      ? 'Lat: ${_latitude!.toStringAsFixed(6)}, Lng: ${_longitude!.toStringAsFixed(6)}'
+                      : 'Belum ada lokasi yang dipilih',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.blue, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.red),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: OutlinedButton.icon(
+              onPressed: () => _mockPickLocation(),
+              icon: Icon(_latitude != null ? Icons.edit_location_alt_outlined : Icons.add_location_alt_outlined, size: 18),
+              label: Text(
+                _latitude != null ? 'Ubah Lokasi' : 'Pilih Lokasi',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.blue,
+                side: const BorderSide(color: AppColors.blue),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryDivider() {
+    return Divider(height: 1, color: AppColors.borderLight);
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: const Border(top: BorderSide(color: AppColors.borderLight, width: 1)),
+      ),
+      child: Row(
+        children: [
+          if (_currentStep > 1)
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () => setState(() => _currentStep--),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+                label: Text('Kembali', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  side: const BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                ),
+              ),
+            )
+          else
+            const SizedBox.shrink(),
+          const SizedBox(width: 12),
+          if (_currentStep < 3)
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () => _goToPage(_currentStep + 1),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.blue,
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Lanjut', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   void _mockPickLocation() {
-    // Mock location picker (akan di-enhance dengan real map picker nanti)
     setState(() {
-      _latitude = -6.2088; // Jakarta
+      _latitude = -6.2088;
       _longitude = 106.8456;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Lokasi mock berhasil diset. (Implementasi map picker bisa ditambah nanti)'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Lokasi mock berhasil diset.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+      backgroundColor: AppColors.orange,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
   }
 }

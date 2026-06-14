@@ -121,14 +121,14 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))]),
+            decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
             child: Row(children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 22)),
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 22)),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Tambah Karyawan', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
                 const SizedBox(height: 2),
-                Text('Isi data di bawah untuk mendaftarkan karyawan baru', style: GoogleFonts.inter(fontSize: 12, color: Colors.white.withOpacity(0.8))),
+                Text('Isi data di bawah untuk mendaftarkan karyawan baru', style: GoogleFonts.inter(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
               ])),
             ]),
           ),
@@ -176,7 +176,7 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
               onPressed: _isLoading ? null : _tambahKaryawan,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _blueDark,
-                disabledBackgroundColor: _blueDark.withOpacity(0.6),
+                disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),

@@ -52,7 +52,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: _red.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.delete_outline_rounded, color: _red, size: 20)),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: _red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.delete_outline_rounded, color: _red, size: 20)),
             const SizedBox(width: 10),
             Text('Hapus Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: _textPrimary)),
           ]),
@@ -94,7 +94,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(children: [
-                Container(width: 36, height: 36, decoration: BoxDecoration(color: _blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.edit_rounded, color: _blue, size: 18)),
+                Container(width: 36, height: 36, decoration: BoxDecoration(color: _blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.edit_rounded, color: _blue, size: 18)),
                 const SizedBox(width: 10),
                 Text('Edit Data Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: _textPrimary)),
               ]),
@@ -236,9 +236,9 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                 Text('$nama  •  NRP: $nrp', style: GoogleFonts.inter(fontSize: 13, color: _textSecondary)),
                 const SizedBox(height: 20),
                 Row(children: [
-                  Expanded(flex: 3, child: DropdownButtonFormField<int>(value: selectedMonth, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), labelText: 'Bulan', labelStyle: GoogleFonts.inter(fontSize: 13)), items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(namaBulan[i], style: GoogleFonts.inter(fontSize: 13)))), onChanged: (val) { if (val != null) setStateSheet(() => selectedMonth = val); })),
+                  Expanded(flex: 3, child: DropdownButtonFormField<int>(initialValue: selectedMonth, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), labelText: 'Bulan', labelStyle: GoogleFonts.inter(fontSize: 13)), items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(namaBulan[i], style: GoogleFonts.inter(fontSize: 13)))), onChanged: (val) { if (val != null) setStateSheet(() => selectedMonth = val); })),
                   const SizedBox(width: 12),
-                  Expanded(flex: 2, child: DropdownButtonFormField<int>(value: selectedYear, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), labelText: 'Tahun', labelStyle: GoogleFonts.inter(fontSize: 13)), items: [2024, 2025, 2026, 2027].map((y) => DropdownMenuItem(value: y, child: Text('$y', style: GoogleFonts.inter(fontSize: 13)))).toList(), onChanged: (val) { if (val != null) setStateSheet(() => selectedYear = val); })),
+                  Expanded(flex: 2, child: DropdownButtonFormField<int>(initialValue: selectedYear, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), labelText: 'Tahun', labelStyle: GoogleFonts.inter(fontSize: 13)), items: [2024, 2025, 2026, 2027].map((y) => DropdownMenuItem(value: y, child: Text('$y', style: GoogleFonts.inter(fontSize: 13)))).toList(), onChanged: (val) { if (val != null) setStateSheet(() => selectedYear = val); })),
                 ]),
                 const SizedBox(height: 20),
                 FutureBuilder<QuerySnapshot>(
@@ -287,7 +287,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
   }
 
   static Widget _rekapStatCard(String label, int count, Color color) {
-    return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(color: color.withOpacity(0.06), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withOpacity(0.12))), child: Column(children: [Text('$count', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: color)), const SizedBox(height: 2), Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textSecondary))])));
+    return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(color: color.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.12))), child: Column(children: [Text('$count', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: color)), const SizedBox(height: 2), Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textSecondary))])));
   }
 
   @override
@@ -321,7 +321,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                     if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: _blue));
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Container(width: 72, height: 72, decoration: BoxDecoration(color: _blue.withOpacity(0.08), borderRadius: BorderRadius.circular(20)), child: Icon(Icons.people_outline_rounded, size: 32, color: _blue.withOpacity(0.5))),
+                        Container(width: 72, height: 72, decoration: BoxDecoration(color: _blue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)), child: Icon(Icons.people_outline_rounded, size: 32, color: _blue.withValues(alpha: 0.5))),
                         const SizedBox(height: 16),
                         Text('Belum ada data karyawan', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: _textSecondary)),
                         const SizedBox(height: 4),
@@ -343,7 +343,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             child: Row(children: [
@@ -377,6 +377,6 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
   }
 
   static Widget _actionButton(IconData icon, Color color, VoidCallback onTap) {
-    return Material(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(8), child: Icon(icon, size: 18, color: color))));
+    return Material(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: Padding(padding: const EdgeInsets.all(8), child: Icon(icon, size: 18, color: color))));
   }
 }
