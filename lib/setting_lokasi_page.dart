@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'main.dart';
+import 'widgets/shared_widgets.dart';
+import 'utils/app_utils.dart';
 
 class SettingLokasiPage extends StatefulWidget {
   const SettingLokasiPage({super.key});
@@ -20,15 +23,6 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isFetchingLocation = false;
-
-  static const _blue = Color(0xFF2563EB);
-  static const _blueDark = Color(0xFF1D4ED8);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _textMuted = Color(0xFF9CA3AF);
-  static const _green = Color(0xFF16A34A);
-  static const _border = Color(0xFFE5E7EB);
-  static const _bg = Color(0xFFF4F6F9);
 
   @override
   void initState() {
@@ -107,18 +101,13 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Lokasi berhasil diambil!', style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: _green,
+        backgroundColor: AppColors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Gagal mengambil lokasi: $e', style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
+      showCustomError(context, 'Gagal mengambil lokasi. Pastikan GPS aktif.');
     }
     if (mounted) setState(() => _isFetchingLocation = false);
   }
@@ -146,18 +135,13 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Lokasi berhasil diperbarui!', style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: _green,
+        backgroundColor: AppColors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Gagal menyimpan: $e', style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
+      showCustomError(context, 'Gagal menyimpan lokasi. Silakan coba lagi.');
     }
     if (mounted) setState(() => _isSaving = false);
   }
@@ -173,18 +157,18 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Pengaturan Lokasi', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: _textPrimary, fontSize: 18)),
+        title: Text('Pengaturan Lokasi', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: _textPrimary),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: _border)),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: AppColors.border)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _blue))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
           : Column(children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -193,7 +177,7 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.blue, AppColors.blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
                       child: Row(children: [
                         Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.location_on_rounded, color: Colors.white, size: 22)),
                         const SizedBox(width: 14),
@@ -210,38 +194,38 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
                       child: OutlinedButton.icon(
                         onPressed: _isFetchingLocation ? null : _ambilLokasiSaatIni,
                         icon: _isFetchingLocation
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: _blue))
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.blue))
                             : const Icon(Icons.my_location_rounded, size: 18),
                         label: Text(_isFetchingLocation ? 'Mengambil lokasi...' : 'Ambil Lokasi Saat Ini', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: _blue,
-                          side: BorderSide(color: _blue.withValues(alpha: 0.3)),
+                          foregroundColor: AppColors.blue,
+                          side: BorderSide(color: AppColors.blue.withValues(alpha: 0.3)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
                     const SizedBox(height: 28),
-                    _buildLabel('Latitude (Garis Lintang)'),
+                    AppLabel(text: 'Latitude (Garis Lintang)'),
                     const SizedBox(height: 8),
-                    _buildTextField(controller: _latController, hint: 'contoh: -6.91750000', icon: Icons.explore_outlined, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true)),
+                    AppTextField(controller: _latController, hint: 'contoh: -6.91750000', icon: Icons.explore_outlined, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true)),
                     const SizedBox(height: 20),
-                    _buildLabel('Longitude (Garis Bujur)'),
+                    AppLabel(text: 'Longitude (Garis Bujur)'),
                     const SizedBox(height: 8),
-                    _buildTextField(controller: _lngController, hint: 'contoh: 107.61910000', icon: Icons.explore_outlined, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true)),
+                    AppTextField(controller: _lngController, hint: 'contoh: 107.61910000', icon: Icons.explore_outlined, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true)),
                     const SizedBox(height: 20),
-                    _buildLabel('Radius Absensi (meter)'),
+                    AppLabel(text: 'Radius Absensi (meter)'),
                     const SizedBox(height: 8),
-                    _buildTextField(controller: _radiusController, hint: 'contoh: 50', icon: Icons.radio_button_unchecked, keyboardType: TextInputType.number),
+                    AppTextField(controller: _radiusController, hint: 'contoh: 50', icon: Icons.radio_button_unchecked, keyboardType: TextInputType.number),
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: _blue.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: _blue.withValues(alpha: 0.1))),
+                      decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.blue.withValues(alpha: 0.1))),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Icon(Icons.info_outline_rounded, size: 18, color: _blue.withValues(alpha: 0.6)),
+                        Icon(Icons.info_outline_rounded, size: 18, color: AppColors.blue.withValues(alpha: 0.6)),
                         const SizedBox(width: 10),
-                        Expanded(child: Text('Radius menentukan jarak maksimal karyawan dari titik kantor agar absensi dianggap valid. Default: 50 meter.', style: GoogleFonts.inter(fontSize: 12, color: _textSecondary, height: 1.5))),
+                        Expanded(child: Text('Radius menentukan jarak maksimal karyawan dari titik kantor agar absensi dianggap valid. Default: 50 meter.', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary, height: 1.5))),
                       ]),
                     ),
                   ]),
@@ -249,15 +233,15 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
               ),
               Container(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: _border, width: 0.8))),
+                decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.border, width: 0.8))),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _simpanLokasi,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _blueDark,
-                      disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
+                      backgroundColor: AppColors.blueDark,
+                      disabledBackgroundColor: AppColors.blueDark.withValues(alpha: 0.6),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
@@ -275,26 +259,4 @@ class _SettingLokasiPageState extends State<SettingLokasiPage> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary));
-  }
-
-  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon, TextInputType? keyboardType}) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: GoogleFonts.inter(fontSize: 14, color: _textPrimary),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.inter(fontSize: 14, color: _textMuted),
-        prefixIcon: Icon(icon, size: 20, color: _textMuted),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
-      ),
-    );
-  }
 }

@@ -8,6 +8,7 @@ import 'absen_page.dart';
 import 'form_izin_page.dart';
 import 'history_page.dart';
 import 'services/holiday_service.dart';
+import 'widgets/shared_widgets.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -73,7 +74,7 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 16),
                   _buildPengajuanCepat(context),
                   const SizedBox(height: 20),
-                  _buildSectionTitle('Aksi Cepat'),
+                  AppSectionTitle(title: 'Aksi Cepat'),
                   const SizedBox(height: 12),
                   _buildQuickActions(context),
                   const SizedBox(height: 20),
@@ -148,11 +149,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCalendarCard(BuildContext context) {
-    return _buildCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle(Icons.calendar_today_rounded, 'Kalender Kehadiran'),
+          AppCardTitle(icon: Icons.calendar_today_rounded, title: 'Kalender Kehadiran'),
           _buildCalendarGrid(context),
           const SizedBox(height: 14),
           _buildStatsRow(),
@@ -456,11 +457,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildPengajuanCepat(BuildContext context) {
-    return _buildCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle(Icons.description_outlined, 'Pengajuan Cepat'),
+          AppCardTitle(icon: Icons.description_outlined, title: 'Pengajuan Cepat'),
           GestureDetector(
             onTap: _showJenisPengajuanSheet,
             child: Container(
@@ -600,14 +601,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildRecentActivity(String nrp) {
-    return _buildCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildCardTitle(Icons.access_time_rounded, 'Aktivitas Terbaru'),
+              AppCardTitle(icon: Icons.access_time_rounded, title: 'Aktivitas Terbaru'),
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryPage())),
                 child: Text(
@@ -729,54 +730,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-
-  Widget _buildCardTitle(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: AppColors.blue),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-      ),
-    );
-  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'main.dart';
 import 'manage_employee_page.dart';
 import 'employee_detail_history_page.dart';
 
@@ -15,15 +16,6 @@ class KaryawanListPage extends StatefulWidget {
 class _KaryawanListPageState extends State<KaryawanListPage> {
   String? _companyId;
   bool _isLoadingCompany = true;
-
-  static const _blue = Color(0xFF2563EB);
-  static const _blueDark = Color(0xFF1D4ED8);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _textMuted = Color(0xFF9CA3AF);
-  static const _red = Color(0xFFDC2626);
-  static const _border = Color(0xFFE5E7EB);
-  static const _bg = Color(0xFFF4F6F9);
 
   @override
   void initState() {
@@ -53,15 +45,15 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(children: [
-            Container(width: 36, height: 36, decoration: BoxDecoration(color: _red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.delete_outline_rounded, color: _red, size: 20)),
+            Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.delete_outline_rounded, color: AppColors.red, size: 20)),
             const SizedBox(width: 10),
-            Text('Hapus Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: _textPrimary)),
+            Text('Hapus Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
           ]),
-          content: Text('Apakah Anda yakin ingin menghapus "$nama" dari sistem? Data yang sudah dihapus tidak dapat dikembalikan.', style: GoogleFonts.inter(fontSize: 13, color: _textSecondary, height: 1.5)),
+          content: Text('Apakah Anda yakin ingin menghapus "$nama" dari sistem? Data yang sudah dihapus tidak dapat dikembalikan.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.5)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _textSecondary))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () async {
                 await FirebaseFirestore.instance.collection('users').doc(docId).delete();
                 if (!ctx.mounted) return;
@@ -95,14 +87,14 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(children: [
-                Container(width: 36, height: 36, decoration: BoxDecoration(color: _blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.edit_rounded, color: _blue, size: 18)),
+                Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.edit_rounded, color: AppColors.blue, size: 18)),
                 const SizedBox(width: 10),
-                Text('Edit Data Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: _textPrimary)),
+                Text('Edit Data Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary)),
               ]),
               content: Column(mainAxisSize: MainAxisSize.min, children: [
-                TextField(controller: namaController, style: GoogleFonts.inter(fontSize: 14), decoration: InputDecoration(labelText: 'Nama Lengkap', labelStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted), prefixIcon: const Icon(Icons.person_outline_rounded, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)))),
+                TextField(controller: namaController, style: GoogleFonts.inter(fontSize: 14), decoration: InputDecoration(labelText: 'Nama Lengkap', labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted), prefixIcon: const Icon(Icons.person_outline_rounded, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)))),
                 const SizedBox(height: 14),
-                TextField(controller: nrpController, style: GoogleFonts.inter(fontSize: 14), decoration: InputDecoration(labelText: 'NRP', labelStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted), prefixIcon: const Icon(Icons.badge_outlined, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)))),
+                TextField(controller: nrpController, style: GoogleFonts.inter(fontSize: 14), decoration: InputDecoration(labelText: 'NRP', labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted), prefixIcon: const Icon(Icons.badge_outlined, size: 20), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)))),
                 const SizedBox(height: 14),
                 InkWell(
                   onTap: () {
@@ -126,7 +118,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                                 margin: const EdgeInsets.only(top: 12, bottom: 20),
                                 decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
                               ),
-                              Text('Pilih Divisi', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: _textPrimary)),
+                              Text('Pilih Divisi', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                               const SizedBox(height: 12),
                               Flexible(
                                 child: ListView.builder(
@@ -150,12 +142,12 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                                                 style: GoogleFonts.inter(
                                                   fontSize: 15,
                                                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                                  color: isSelected ? _blue : _textPrimary,
+                                                  color: isSelected ? AppColors.blue : AppColors.textPrimary,
                                                 ),
                                               ),
                                             ),
                                             if (isSelected)
-                                              Icon(Icons.check_circle_rounded, color: _blue, size: 22),
+                                              Icon(Icons.check_circle_rounded, color: AppColors.blue, size: 22),
                                           ],
                                         ),
                                       ),
@@ -174,28 +166,28 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Divisi',
-                      labelStyle: GoogleFonts.inter(fontSize: 13, color: _textMuted),
+                      labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
                       prefixIcon: const Icon(Icons.workspaces_outlined, size: 20),
-                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: _textMuted),
+                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: AppColors.textMuted),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
                     ),
                     child: Text(
                       selectedDivisi,
-                      style: GoogleFonts.inter(fontSize: 14, color: _textPrimary),
+                      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary),
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text('*Email tidak dapat diubah karena terikat dengan sistem login kredensial.', style: GoogleFonts.inter(fontSize: 11, color: _textMuted, fontStyle: FontStyle.italic)),
+                Text('*Email tidak dapat diubah karena terikat dengan sistem login kredensial.', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic)),
               ]),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _textSecondary))),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                   onPressed: () async {
                     if (namaController.text.isEmpty || nrpController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nama dan NRP tidak boleh kosong!', style: GoogleFonts.inter(color: Colors.white)), backgroundColor: _red, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Nama dan NRP tidak boleh kosong!', style: GoogleFonts.inter(color: Colors.white)), backgroundColor: AppColors.red, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
                       return;
                     }
                     await FirebaseFirestore.instance.collection('users').doc(docId).update({'nama': namaController.text, 'nrp': nrpController.text, 'divisi': selectedDivisi});
@@ -230,11 +222,11 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
               decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(2)))),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 20),
-                Text('Rekap Absensi', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: _textPrimary)),
+                Text('Rekap Absensi', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
-                Text('$nama  •  NRP: $nrp', style: GoogleFonts.inter(fontSize: 13, color: _textSecondary)),
+                Text('$nama  •  NRP: $nrp', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
                 const SizedBox(height: 20),
                 Row(children: [
                   Expanded(flex: 3, child: DropdownButtonFormField<int>(initialValue: selectedMonth, decoration: InputDecoration(contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), labelText: 'Bulan', labelStyle: GoogleFonts.inter(fontSize: 13)), items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(namaBulan[i], style: GoogleFonts.inter(fontSize: 13)))), onChanged: (val) { if (val != null) setStateSheet(() => selectedMonth = val); })),
@@ -246,7 +238,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                   future: FirebaseFirestore.instance.collection('absensi').where('nrp', isEqualTo: nrp).get(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
-                    if (snapshot.hasError) return SizedBox(height: 100, child: Center(child: Text('Gagal memuat data', style: GoogleFonts.inter(color: _textMuted))));
+                    if (snapshot.hasError) return SizedBox(height: 100, child: Center(child: Text('Gagal memuat data', style: GoogleFonts.inter(color: AppColors.textMuted))));
 
                     int hadir = 0, tepat = 0, telat = 0;
                     for (var doc in snapshot.data!.docs) {
@@ -269,11 +261,11 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                     }
 
                     return Row(children: [
-                      _rekapStatCard('Hadir', hadir, _blue),
+                      _rekapStatCard('Hadir', hadir, AppColors.blue),
                       const SizedBox(width: 10),
                       _rekapStatCard('Tepat Waktu', tepat, const Color(0xFF16A34A)),
                       const SizedBox(width: 10),
-                      _rekapStatCard('Terlambat', telat, _red),
+                      _rekapStatCard('Terlambat', telat, AppColors.red),
                     ]);
                   },
                 ),
@@ -298,7 +290,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                     icon: const Icon(Icons.visibility_rounded, size: 18),
                     label: Text('Lihat Detail Absen', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
+                      backgroundColor: AppColors.blue,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -307,7 +299,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: _bg, foregroundColor: _textPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _border)), padding: const EdgeInsets.symmetric(vertical: 14)), child: Text('Tutup', style: GoogleFonts.inter(fontWeight: FontWeight.w600)))),
+                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppColors.bg, foregroundColor: AppColors.textPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.border)), padding: const EdgeInsets.symmetric(vertical: 14)), child: Text('Tutup', style: GoogleFonts.inter(fontWeight: FontWeight.w600)))),
               ]),
             );
           },
@@ -317,45 +309,45 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
   }
 
   static Widget _rekapStatCard(String label, int count, Color color) {
-    return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(color: color.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.12))), child: Column(children: [Text('$count', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: color)), const SizedBox(height: 2), Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textSecondary))])));
+    return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(color: color.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14), border: Border.all(color: color.withValues(alpha: 0.12))), child: Column(children: [Text('$count', style: GoogleFonts.inter(fontSize: 26, fontWeight: FontWeight.w800, color: color)), const SizedBox(height: 2), Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary))])));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Daftar Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: _textPrimary, fontSize: 18)),
+        title: Text('Daftar Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: _textPrimary),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: _border)),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: AppColors.border)),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageEmployeePage())),
-        backgroundColor: _blueDark,
+        backgroundColor: AppColors.blueDark,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 20),
         label: Text('Tambah Karyawan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13)),
       ),
       body: _isLoadingCompany
-          ? const Center(child: CircularProgressIndicator(color: _blue))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
           : _companyId == null
-              ? Center(child: Text('Gagal memuat data perusahaan.', style: GoogleFonts.inter(color: _textMuted)))
+              ? Center(child: Text('Gagal memuat data perusahaan.', style: GoogleFonts.inter(color: AppColors.textMuted)))
               : StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'karyawan').where('company_id', isEqualTo: _companyId).snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: _blue));
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: AppColors.blue));
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Container(width: 72, height: 72, decoration: BoxDecoration(color: _blue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)), child: Icon(Icons.people_outline_rounded, size: 32, color: _blue.withValues(alpha: 0.5))),
+                        Container(width: 72, height: 72, decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20)), child: Icon(Icons.people_outline_rounded, size: 32, color: AppColors.blue.withValues(alpha: 0.5))),
                         const SizedBox(height: 16),
-                        Text('Belum ada data karyawan', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: _textSecondary)),
+                        Text('Belum ada data karyawan', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                         const SizedBox(height: 4),
-                        Text('Tambahkan karyawan pertama Anda', style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
+                        Text('Tambahkan karyawan pertama Anda', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
                       ]));
                     }
 
@@ -373,26 +365,26 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             child: Row(children: [
-                              Container(width: 46, height: 46, decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(14)), child: Center(child: Text(nama.isNotEmpty ? nama[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)))),
+                              Container(width: 46, height: 46, decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.blue, AppColors.blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(14)), child: Center(child: Text(nama.isNotEmpty ? nama[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)))),
                               const SizedBox(width: 14),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(nama, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _textPrimary)),
+                                Text(nama, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                                 const SizedBox(height: 3),
-                                Text('NRP: $nrp', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textMuted)),
+                                Text('NRP: $nrp', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textMuted)),
                                 Row(children: [
-                                  Icon(Icons.workspaces_outlined, size: 11, color: _textMuted),
+                                  Icon(Icons.workspaces_outlined, size: 11, color: AppColors.textMuted),
                                   const SizedBox(width: 4),
-                                  Text(divisi, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textSecondary)),
+                                  Text(divisi, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                                 ]),
                               ])),
                               Row(mainAxisSize: MainAxisSize.min, children: [
-                                _actionButton(Icons.edit_outlined, _blue, () => _showEditKaryawan(context, docId, nama, nrp, divisi)),
+                                _actionButton(Icons.edit_outlined, AppColors.blue, () => _showEditKaryawan(context, docId, nama, nrp, divisi)),
                                 const SizedBox(width: 4),
-                                _actionButton(Icons.delete_outline_rounded, _red, () => _hapusKaryawan(context, docId, nama)),
+                                _actionButton(Icons.delete_outline_rounded, AppColors.red, () => _hapusKaryawan(context, docId, nama)),
                                 const SizedBox(width: 4),
                                 _actionButton(Icons.analytics_outlined, const Color(0xFFEA580C), () => _showRekapAbsen(context, docId, nama, nrp)),
                               ]),

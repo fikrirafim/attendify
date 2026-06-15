@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'main.dart';
+import 'utils/app_utils.dart';
 
 class SettingJamPage extends StatefulWidget {
   const SettingJamPage({super.key});
@@ -16,15 +18,6 @@ class _SettingJamPageState extends State<SettingJamPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   String _docId = '';
-
-  static const _blue = Color(0xFF2563EB);
-  static const _blueDark = Color(0xFF1D4ED8);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _textMuted = Color(0xFF9CA3AF);
-  static const _green = Color(0xFF16A34A);
-  static const _border = Color(0xFFE5E7EB);
-  static const _bg = Color(0xFFF4F6F9);
 
   @override
   void initState() {
@@ -65,17 +58,17 @@ class _SettingJamPageState extends State<SettingJamPage> {
               backgroundColor: Colors.white,
               hourMinuteShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               dayPeriodShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              dayPeriodColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? _blue : _bg),
-              dayPeriodTextColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? Colors.white : _textSecondary),
+              dayPeriodColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.blue : AppColors.bg),
+              dayPeriodTextColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? Colors.white : AppColors.textSecondary),
               dayPeriodTextStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13),
-              hourMinuteColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? _blue.withValues(alpha: 0.1) : _bg),
-              hourMinuteTextColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? _blue : _textPrimary),
-              dialHandColor: _blue,
-              dialBackgroundColor: _bg,
-              entryModeIconColor: _blue,
+              hourMinuteColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.blue.withValues(alpha: 0.1) : AppColors.bg),
+              hourMinuteTextColor: WidgetStateColor.resolveWith((states) => states.contains(WidgetState.selected) ? AppColors.blue : AppColors.textPrimary),
+              dialHandColor: AppColors.blue,
+              dialBackgroundColor: AppColors.bg,
+              entryModeIconColor: AppColors.blue,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
-            colorScheme: const ColorScheme.light(primary: _blue, onPrimary: Colors.white, surface: Colors.white, onSurface: _textPrimary),
+            colorScheme: const ColorScheme.light(primary: AppColors.blue, onPrimary: Colors.white, surface: Colors.white, onSurface: AppColors.textPrimary),
           ),
           child: child!,
         );
@@ -106,18 +99,13 @@ class _SettingJamPageState extends State<SettingJamPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Pengaturan jam operasional berhasil disimpan!', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
-        backgroundColor: _green,
+        backgroundColor: AppColors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Gagal menyimpan: $e', style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
+      showCustomError(context, 'Gagal menyimpan pengaturan jam. Silakan coba lagi.');
     }
 
     if (mounted) setState(() => _isSaving = false);
@@ -126,18 +114,18 @@ class _SettingJamPageState extends State<SettingJamPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Pengaturan Jam', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: _textPrimary, fontSize: 18)),
+        title: Text('Pengaturan Jam', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: _textPrimary),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: _border)),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: AppColors.border)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _blue))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
           : Column(children: [
               Expanded(
                 child: SingleChildScrollView(
@@ -146,7 +134,7 @@ class _SettingJamPageState extends State<SettingJamPage> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.blue, AppColors.blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
                       child: Row(children: [
                         Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.schedule_rounded, color: Colors.white, size: 22)),
                         const SizedBox(width: 14),
@@ -181,11 +169,11 @@ class _SettingJamPageState extends State<SettingJamPage> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: _blue.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(14), border: Border.all(color: _blue.withValues(alpha: 0.1))),
+                      decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.blue.withValues(alpha: 0.1))),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Icon(Icons.info_outline_rounded, size: 18, color: _blue.withValues(alpha: 0.6)),
+                        Icon(Icons.info_outline_rounded, size: 18, color: AppColors.blue.withValues(alpha: 0.6)),
                         const SizedBox(width: 10),
-                        Expanded(child: Text('Perubahan jam operasional akan berlaku untuk seluruh karyawan di perusahaan Anda.', style: GoogleFonts.inter(fontSize: 12, color: _textSecondary, height: 1.5))),
+                        Expanded(child: Text('Perubahan jam operasional akan berlaku untuk seluruh karyawan di perusahaan Anda.', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary, height: 1.5))),
                       ]),
                     ),
                   ]),
@@ -193,15 +181,15 @@ class _SettingJamPageState extends State<SettingJamPage> {
               ),
               Container(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: _border, width: 0.8))),
+                decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AppColors.border, width: 0.8))),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _simpanPengaturan,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _blueDark,
-                      disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
+                      backgroundColor: AppColors.blueDark,
+                      disabledBackgroundColor: AppColors.blueDark.withValues(alpha: 0.6),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
@@ -229,7 +217,7 @@ class _SettingJamPageState extends State<SettingJamPage> {
     required Color accentBg,
   }) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
@@ -242,13 +230,13 @@ class _SettingJamPageState extends State<SettingJamPage> {
               Container(width: 52, height: 52, decoration: BoxDecoration(color: accentBg, borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: accentColor, size: 24)),
               const SizedBox(width: 16),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _textPrimary)),
+                Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: GoogleFonts.inter(fontSize: 11, color: _textMuted, height: 1.4)),
+                Text(subtitle, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted, height: 1.4)),
                 const SizedBox(height: 10),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: accentBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: accentColor.withValues(alpha: 0.15))), child: Text('${_formatTime(time)} WIB', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: accentColor, letterSpacing: 1))),
               ])),
-              Container(width: 36, height: 36, decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.edit_outlined, size: 18, color: _textMuted)),
+              Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(10)), child: Icon(Icons.edit_outlined, size: 18, color: AppColors.textMuted)),
             ]),
           ),
         ),

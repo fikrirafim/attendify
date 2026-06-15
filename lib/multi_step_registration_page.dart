@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
 import 'login_page.dart';
+import 'widgets/shared_widgets.dart';
+import 'utils/app_utils.dart';
 
 class MultiStepRegistrationPage extends StatefulWidget {
   const MultiStepRegistrationPage({super.key});
@@ -115,12 +117,7 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: $e', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
-          backgroundColor: AppColors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ));
+        showCustomError(context, 'Terjadi kesalahan. Silakan coba lagi.');
       }
     }
     if (mounted) setState(() => _isLoading = false);
@@ -275,55 +272,37 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
             ),
           ),
           const SizedBox(height: 28),
-          _buildCard(
+          AppCard(
+            padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                _buildLabel('Nama Lengkap HR'),
+                AppLabel(text: 'Nama Lengkap HR'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  _namaHRController,
-                  'Masukkan nama lengkap',
-                  Icons.person_outline_rounded,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Nama tidak boleh kosong';
-                    if (value.length < 3) return 'Nama minimal 3 karakter';
-                    return null;
-                  },
+                AppTextField(
+                  controller: _namaHRController,
+                  hint: 'Masukkan nama lengkap',
+                  icon: Icons.person_outline_rounded,
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Email HR'),
+                AppLabel(text: 'Email HR'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  _emailHRController,
-                  'contoh@email.com',
-                  Icons.email_outlined,
+                AppTextField(
+                  controller: _emailHRController,
+                  hint: 'contoh@email.com',
+                  icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Email tidak boleh kosong';
-                    if (!value.contains('@')) return 'Email tidak valid';
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Nomor Telepon'),
+                AppLabel(text: 'Nomor Telepon'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  _phoneController,
-                  '08xxxxxxxxxx',
-                  Icons.phone_outlined,
+                AppTextField(
+                  controller: _phoneController,
+                  hint: '08xxxxxxxxxx',
+                  icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      final digits = value.replaceAll(RegExp(r'\D'), '');
-                      if (digits.length < 10 || digits.length > 13) {
-                        return 'Nomor telepon harus 10-13 digit';
-                      }
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Password'),
+                AppLabel(text: 'Password'),
                 const SizedBox(height: 8),
                 _buildPasswordField(),
               ],
@@ -361,50 +340,37 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
             ),
           ),
           const SizedBox(height: 28),
-          _buildCard(
+          AppCard(
+            padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                _buildLabel('Nama Kantor/Perusahaan'),
+                AppLabel(text: 'Nama Kantor/Perusahaan'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  _namaPerusahaanController,
-                  'Masukkan nama kantor',
-                  Icons.apartment_rounded,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Nama kantor tidak boleh kosong';
-                    if (value.length < 3) return 'Nama kantor minimal 3 karakter';
-                    return null;
-                  },
+                AppTextField(
+                  controller: _namaPerusahaanController,
+                  hint: 'Masukkan nama kantor',
+                  icon: Icons.apartment_rounded,
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Email Kantor'),
+                AppLabel(text: 'Email Kantor'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  _emailKantorController,
-                  'kantor@email.com',
-                  Icons.email_outlined,
+                AppTextField(
+                  controller: _emailKantorController,
+                  hint: 'kantor@email.com',
+                  icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Email kantor tidak boleh kosong';
-                    if (!value.contains('@')) return 'Email tidak valid';
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Alamat Kantor'),
+                AppLabel(text: 'Alamat Kantor'),
                 const SizedBox(height: 8),
-                _buildTextField(
-                  _alamatController,
-                  'Masukkan alamat lengkap kantor',
-                  Icons.location_on_outlined,
+                AppTextField(
+                  controller: _alamatController,
+                  hint: 'Masukkan alamat lengkap kantor',
+                  icon: Icons.location_on_outlined,
                   maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Alamat tidak boleh kosong';
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20),
-                _buildLabel('Lokasi Kantor (Opsional)'),
+                AppLabel(text: 'Lokasi Kantor (Opsional)'),
                 const SizedBox(height: 8),
                 _buildLocationPicker(),
               ],
@@ -454,7 +420,8 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 28),
-        _buildCard(
+        AppCard(
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -476,7 +443,8 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
           ),
         ),
         const SizedBox(height: 16),
-        _buildCard(
+        AppCard(
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -566,62 +534,6 @@ class _MultiStepRegistrationPageState extends State<MultiStepRegistrationPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCard({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textMuted),
-        prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red)),
-      ),
-      validator: validator,
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
 import 'package:camera/camera.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/foundation.dart';
@@ -22,13 +23,6 @@ class ResultPage extends StatelessWidget {
     this.capturedImage,
   });
 
-  static const Color _accentBlue = Color(0xFF2563EB);
-  static const Color _textPrimary = Color(0xFF1A1D26);
-  static const Color _textSecondary = Color(0xFF6B7280);
-  static const Color _textMuted = Color(0xFF9CA3AF);
-  static const Color _borderColor = Color(0xFFE5E7EB);
-  static const Color _bgOffWhite = Color(0xFFF4F6F9);
-
   String _formatHari() {
     const hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -42,20 +36,20 @@ class ResultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgOffWhite,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 1,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: _textPrimary),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Detail Presensi',
           style: GoogleFonts.inter(
-            color: _textPrimary,
+            color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -63,7 +57,7 @@ class ResultPage extends StatelessWidget {
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: _borderColor),
+          child: Container(height: 1, color: AppColors.border),
         ),
       ),
       body: SingleChildScrollView(
@@ -101,7 +95,7 @@ class ResultPage extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: _textPrimary,
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
@@ -110,7 +104,7 @@ class ResultPage extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: _textSecondary,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -124,7 +118,7 @@ class ResultPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -140,7 +134,7 @@ class ResultPage extends StatelessWidget {
           const SizedBox(height: 20),
           _buildTimeRow(),
           const SizedBox(height: 24),
-          Container(height: 1, color: _borderColor),
+          Container(height: 1, color: AppColors.border),
           const SizedBox(height: 20),
           _buildInfoList(),
         ],
@@ -157,7 +151,7 @@ class ResultPage extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: _accentBlue,
+            color: AppColors.blue,
           ),
         ),
         Container(
@@ -213,7 +207,7 @@ class ResultPage extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: _textSecondary,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -229,7 +223,7 @@ class ResultPage extends StatelessWidget {
       height: 70,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _borderColor),
+        border: Border.all(color: AppColors.border),
         color: const Color(0xFFF9FAFB),
       ),
       child: ClipRRect(
@@ -243,17 +237,17 @@ class ResultPage extends StatelessWidget {
                       child: SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: _accentBlue),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.blue),
                       ),
                     );
                   }
                   if (snapshot.hasError || snapshot.data == null) {
-                    return const Icon(Icons.person_rounded, size: 32, color: _textMuted);
+                    return const Icon(Icons.person_rounded, size: 32, color: AppColors.textMuted);
                   }
                   return Image.memory(snapshot.data!, fit: BoxFit.cover);
                 },
               )
-            : const Icon(Icons.person_rounded, size: 32, color: _textMuted),
+            : const Icon(Icons.person_rounded, size: 32, color: AppColors.textMuted),
       ),
     );
   }
@@ -282,9 +276,9 @@ class ResultPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFF9FAFB),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _borderColor),
+            border: Border.all(color: AppColors.border),
           ),
-          child: Icon(icon, size: 18, color: _accentBlue),
+          child: Icon(icon, size: 18, color: AppColors.blue),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -296,7 +290,7 @@ class ResultPage extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: _textMuted,
+                  color: AppColors.textMuted,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -306,7 +300,7 @@ class ResultPage extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: _textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -325,9 +319,9 @@ class ResultPage extends StatelessWidget {
           Navigator.of(context).popUntil((route) => route.isFirst);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: _accentBlue,
+          backgroundColor: AppColors.blue,
           elevation: 1,
-          shadowColor: _accentBlue.withValues(alpha: 0.3),
+          shadowColor: AppColors.blue.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

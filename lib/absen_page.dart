@@ -5,9 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'main.dart';
 import 'result_page.dart';
+import 'utils/app_utils.dart';
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -265,10 +267,7 @@ class _AbsenPageState extends State<AbsenPage> {
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Gagal mengambil gambar: $e'),
-          backgroundColor: AppColors.red,
-        ));
+        showCustomError(context, 'Gagal mengambil gambar.');
         return;
       }
 
@@ -279,6 +278,7 @@ class _AbsenPageState extends State<AbsenPage> {
         QuerySnapshot hrSnapshot = await firestore
             .collection('users')
             .where('role', isEqualTo: 'hr')
+            .where('company_id', isEqualTo: _companyId)
             .get();
         for (var doc in hrSnapshot.docs) {
           Map<String, dynamic> dataHR = doc.data() as Map<String, dynamic>;
@@ -324,7 +324,7 @@ class _AbsenPageState extends State<AbsenPage> {
       String downloadUrl = "";
       try {
         final bytes = await capturedImage.readAsBytes();
-        String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a';
+        String imgbbApiKey = dotenv.env['IMGBB_API_KEY'] ?? '';
 
         var request = http.MultipartRequest(
             'POST', Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
@@ -383,10 +383,7 @@ class _AbsenPageState extends State<AbsenPage> {
       if (!mounted) return;
       Navigator.pop(context);
       debugPrint("ERROR: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Terjadi kesalahan sistem: $e'),
-        backgroundColor: AppColors.red,
-      ));
+      showCustomError(context, 'Terjadi kesalahan sistem. Silakan coba lagi.');
     }
   }
 

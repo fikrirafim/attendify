@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
+import 'utils/app_utils.dart';
 
 class FormIzinPage extends StatefulWidget {
   final String? initialJenisIzin;
@@ -15,14 +18,6 @@ class FormIzinPage extends StatefulWidget {
 }
 
 class _FormIzinPageState extends State<FormIzinPage> {
-  static const Color _accentBlue = Color(0xFF2563EB);
-  static const Color _bgOffWhite = Color(0xFFF4F6F9);
-  static const Color _textPrimary = Color(0xFF1A1D26);
-  static const Color _textSecondary = Color(0xFF6B7280);
-  static const Color _textMuted = Color(0xFF9CA3AF);
-  static const Color _borderColor = Color(0xFFE5E7EB);
-  static const Color _surfaceWhite = Color(0xFFFFFFFF);
-
   final _formKey = GlobalKey<FormState>();
 
   String _jenisIzin = 'Izin';
@@ -111,10 +106,10 @@ class _FormIzinPageState extends State<FormIzinPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: _accentBlue,
+              primary: AppColors.blue,
               onPrimary: Colors.white,
-              surface: _surfaceWhite,
-              onSurface: _textPrimary,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -143,10 +138,10 @@ class _FormIzinPageState extends State<FormIzinPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: _accentBlue,
+              primary: AppColors.blue,
               onPrimary: Colors.white,
-              surface: _surfaceWhite,
-              onSurface: _textPrimary,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -166,10 +161,10 @@ class _FormIzinPageState extends State<FormIzinPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: _accentBlue,
+              primary: AppColors.blue,
               onPrimary: Colors.white,
-              surface: _surfaceWhite,
-              onSurface: _textPrimary,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -184,7 +179,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
   void _showFotoSourceSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surfaceWhite,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -199,13 +194,13 @@ class _FormIzinPageState extends State<FormIzinPage> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: _borderColor,
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined,
-                    color: _accentBlue),
+                    color: AppColors.blue),
                 title: const Text('Ambil dari Kamera',
                     style:
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
@@ -216,7 +211,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined,
-                    color: _accentBlue),
+                    color: AppColors.blue),
                 title: const Text('Pilih dari Galeri',
                     style:
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
@@ -289,7 +284,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
       if (_fotoBukti != null) {
         try {
           final bytes = await _fotoBukti!.readAsBytes();
-          String imgbbApiKey = '5d0b36d874199ba68bcffe5dd6f3402a';
+          String imgbbApiKey = dotenv.env['IMGBB_API_KEY'] ?? '';
 
           var request = http.MultipartRequest('POST',
               Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
@@ -339,31 +334,28 @@ class _FormIzinPageState extends State<FormIzinPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Gagal mengirim pengajuan: $e'),
-        backgroundColor: const Color(0xFFDC2626),
-      ));
+      showCustomError(context, 'Gagal mengirim pengajuan. Silakan coba lagi.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgOffWhite,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 1,
-        backgroundColor: _surfaceWhite,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 20, color: _textPrimary),
+              size: 20, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Pengajuan',
           style: TextStyle(
-            color: _textPrimary,
+            color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -373,13 +365,13 @@ class _FormIzinPageState extends State<FormIzinPage> {
           preferredSize: const Size.fromHeight(1),
           child: Container(
             height: 1,
-            color: _borderColor,
+            color: AppColors.border,
           ),
         ),
       ),
       body: _isLoading || _isLoadingData
           ? const Center(
-              child: CircularProgressIndicator(color: _accentBlue))
+              child: CircularProgressIndicator(color: AppColors.blue))
           : SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
@@ -428,7 +420,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
       style: const TextStyle(
         fontWeight: FontWeight.w700,
         fontSize: 14,
-        color: _textPrimary,
+        color: AppColors.textPrimary,
         letterSpacing: -0.1,
       ),
     );
@@ -437,7 +429,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
   void _showJenisPengajuanSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surfaceWhite,
+      backgroundColor: AppColors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -452,7 +444,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _borderColor,
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -466,7 +458,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: _textPrimary,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -499,14 +491,14 @@ class _FormIzinPageState extends State<FormIzinPage> {
                                       ? FontWeight.w700
                                       : FontWeight.w500,
                                   color: isSelected
-                                      ? _accentBlue
-                                      : _textPrimary,
+                                      ? AppColors.blue
+                                      : AppColors.textPrimary,
                                 ),
                               ),
                             ),
                             if (isSelected)
                               const Icon(Icons.check_rounded,
-                                  color: _accentBlue, size: 22),
+                                  color: AppColors.blue, size: 22),
                           ],
                         ),
                       ),
@@ -515,7 +507,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child:
-                            Container(height: 1, color: _borderColor),
+                            Container(height: 1, color: AppColors.border),
                       ),
                   ],
                 );
@@ -535,9 +527,9 @@ class _FormIzinPageState extends State<FormIzinPage> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: _surfaceWhite,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _borderColor),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -547,12 +539,12 @@ class _FormIzinPageState extends State<FormIzinPage> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: _textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
             const Icon(Icons.keyboard_arrow_down_rounded,
-                color: _textSecondary, size: 22),
+                color: AppColors.textSecondary, size: 22),
           ],
         ),
       ),
@@ -675,9 +667,9 @@ class _FormIzinPageState extends State<FormIzinPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _surfaceWhite,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _borderColor),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,19 +677,19 @@ class _FormIzinPageState extends State<FormIzinPage> {
             Text(title,
                 style: const TextStyle(
                     fontSize: 12,
-                    color: _textSecondary,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Row(
               children: [
                 const Icon(Icons.access_time_rounded,
-                    size: 16, color: _accentBlue),
+                    size: 16, color: AppColors.blue),
                 const SizedBox(width: 8),
                 Text(formatted,
                     style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: _textPrimary)),
+                        color: AppColors.textPrimary)),
               ],
             ),
           ],
@@ -716,9 +708,9 @@ class _FormIzinPageState extends State<FormIzinPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _surfaceWhite,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _borderColor),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -726,19 +718,19 @@ class _FormIzinPageState extends State<FormIzinPage> {
             Text(title,
                 style: const TextStyle(
                     fontSize: 12,
-                    color: _textSecondary,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Row(
               children: [
                 const Icon(Icons.calendar_today_rounded,
-                    size: 16, color: _accentBlue),
+                    size: 16, color: AppColors.blue),
                 const SizedBox(width: 8),
                 Text(formatted,
                     style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: _textPrimary)),
+                        color: AppColors.textPrimary)),
               ],
             ),
           ],
@@ -756,9 +748,9 @@ class _FormIzinPageState extends State<FormIzinPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _surfaceWhite,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _borderColor),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -766,19 +758,19 @@ class _FormIzinPageState extends State<FormIzinPage> {
             const Text('Estimasi Jam',
                 style: TextStyle(
                     fontSize: 12,
-                    color: _textSecondary,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Row(
               children: [
                 const Icon(Icons.access_time_rounded,
-                    size: 16, color: _accentBlue),
+                    size: 16, color: AppColors.blue),
                 const SizedBox(width: 8),
                 Text(formatted,
                     style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
-                        color: _textPrimary)),
+                        color: AppColors.textPrimary)),
               ],
             ),
           ],
@@ -792,25 +784,25 @@ class _FormIzinPageState extends State<FormIzinPage> {
       controller: _keteranganController,
       maxLines: 4,
       style: const TextStyle(
-          fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+          fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: 'Tuliskan alasan pengajuan Anda...',
-        hintStyle: const TextStyle(color: _textMuted, fontWeight: FontWeight.w500),
+        hintStyle: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w500),
         filled: true,
-        fillColor: _surfaceWhite,
+        fillColor: AppColors.surface,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _borderColor),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _borderColor),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _accentBlue, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.blue, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -839,13 +831,13 @@ class _FormIzinPageState extends State<FormIzinPage> {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
-                color: _textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
             Text(
               isWajib ? '*Wajib' : '*Opsional',
               style: TextStyle(
-                color: isWajib ? const Color(0xFFDC2626) : _textMuted,
+                color: isWajib ? const Color(0xFFDC2626) : AppColors.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -862,12 +854,12 @@ class _FormIzinPageState extends State<FormIzinPage> {
             decoration: BoxDecoration(
               color: _fotoBukti != null
                   ? const Color(0xFFF0FDF4)
-                  : _surfaceWhite,
+                  : AppColors.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _fotoBukti != null
                     ? const Color(0xFFBBF7D0)
-                    : _borderColor,
+                    : AppColors.border,
                 width: 1.5,
               ),
             ),
@@ -879,7 +871,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
                       : Icons.cloud_upload_outlined,
                   color: _fotoBukti != null
                       ? const Color(0xFF16A34A)
-                      : _accentBlue,
+                      : AppColors.blue,
                   size: 36,
                 ),
                 const SizedBox(height: 10),
@@ -890,7 +882,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
                   style: TextStyle(
                     color: _fotoBukti != null
                         ? const Color(0xFF16A34A)
-                        : _accentBlue,
+                        : AppColors.blue,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -900,7 +892,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
                   const Text(
                     'JPG, PNG maks. 5MB',
                     style: TextStyle(
-                        color: _textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w500),
                   ),
@@ -920,8 +912,8 @@ class _FormIzinPageState extends State<FormIzinPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _submitPengajuan,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _accentBlue,
-          disabledBackgroundColor: _accentBlue.withValues(alpha: 0.6),
+          backgroundColor: AppColors.blue,
+          disabledBackgroundColor: AppColors.blue.withValues(alpha: 0.6),
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(

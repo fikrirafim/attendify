@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'main.dart';
+import 'widgets/shared_widgets.dart';
+import 'utils/app_utils.dart';
 
 class ManageEmployeePage extends StatefulWidget {
   const ManageEmployeePage({super.key});
@@ -15,16 +19,10 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
   final _nrpController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   String? _selectedDivisi;
   bool _isLoading = false;
   bool _isPasswordVisible = false;
-
-  static const _blue = Color(0xFF2563EB);
-  static const _blueDark = Color(0xFF1D4ED8);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textMuted = Color(0xFF9CA3AF);
-  static const _border = Color(0xFFE5E7EB);
-  static const _bg = Color(0xFFF4F6F9);
 
   static const List<String> _divisiList = [
     'Engineering',
@@ -38,10 +36,12 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
   ];
 
   Future<void> _tambahKaryawan() async {
-    if (_namaController.text.isEmpty || _nrpController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty || _selectedDivisi == null) {
+    if (_namaController.text.isEmpty || _nrpController.text.isEmpty || _emailController.text.isEmpty || _selectedDivisi == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Semua data wajib diisi!', style: GoogleFonts.inter(color: Colors.white)), backgroundColor: const Color(0xFFEA580C), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
       return;
     }
+
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
     try {
@@ -57,10 +57,18 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
 
       if (companyId.isEmpty) throw Exception('Company ID tidak ditemukan di profil HR');
 
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      FirebaseApp secondaryApp = await Firebase.initializeApp(
+        name: 'SecondaryApp',
+        options: Firebase.app().options,
+      );
+
+      UserCredential userCredential = await FirebaseAuth.instanceFor(app: secondaryApp)
+          .createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      await secondaryApp.delete();
 
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
         'email': _emailController.text.trim(),
@@ -88,7 +96,7 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
       setState(() => _selectedDivisi = null);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}', style: GoogleFonts.inter(color: Colors.white)), backgroundColor: const Color(0xFFDC2626), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+      showCustomError(context, 'Gagal menyimpan data karyawan.');
     }
     setState(() => _isLoading = false);
   }
@@ -105,23 +113,25 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Data Karyawan Baru', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: _textPrimary, fontSize: 18)),
+        title: Text('Data Karyawan Baru', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: _textPrimary),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: _border)),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: AppColors.border)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Form(
+          key: _formKey,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(gradient: const LinearGradient(colors: [_blue, _blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: _blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
+            decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.blue, AppColors.blueDark], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]),
             child: Row(children: [
               Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 22)),
               const SizedBox(width: 14),
@@ -133,40 +143,45 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
             ]),
           ),
           const SizedBox(height: 28),
-          _buildLabel('Nama Lengkap'),
+          AppLabel(text: 'Nama Lengkap'),
           const SizedBox(height: 8),
-          _buildTextField(controller: _namaController, hint: 'Masukkan nama lengkap', icon: Icons.person_outline_rounded),
+          AppTextField(controller: _namaController, hint: 'Masukkan nama lengkap', icon: Icons.person_outline_rounded),
           const SizedBox(height: 20),
-          _buildLabel('NRP / ID Karyawan'),
+          AppLabel(text: 'NRP / ID Karyawan'),
           const SizedBox(height: 8),
-          _buildTextField(controller: _nrpController, hint: 'Masukkan NRP karyawan', icon: Icons.badge_outlined),
+          AppTextField(controller: _nrpController, hint: 'Masukkan NRP karyawan', icon: Icons.badge_outlined),
           const SizedBox(height: 20),
-          _buildLabel('Divisi'),
+          AppLabel(text: 'Divisi'),
           const SizedBox(height: 8),
           _buildDivisiField(),
           const SizedBox(height: 20),
-          _buildLabel('Email Karyawan'),
+          AppLabel(text: 'Email Karyawan'),
           const SizedBox(height: 8),
-          _buildTextField(controller: _emailController, hint: 'contoh@email.com', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+          AppTextField(controller: _emailController, hint: 'contoh@email.com', icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
           const SizedBox(height: 20),
-          _buildLabel('Password Akun'),
+          AppLabel(text: 'Password Akun'),
           const SizedBox(height: 8),
-          TextField(
+          TextFormField(
             controller: _passwordController,
             obscureText: !_isPasswordVisible,
-            style: GoogleFonts.inter(fontSize: 14, color: _textPrimary),
+            style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Masukkan password',
-              hintStyle: GoogleFonts.inter(fontSize: 14, color: _textMuted),
-              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: _textMuted),
-              suffixIcon: IconButton(icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: _textMuted), onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible)),
+              hintStyle: GoogleFonts.inter(fontSize: 14, color: AppColors.textMuted),
+              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textMuted),
+              suffixIcon: IconButton(icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: AppColors.textMuted), onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible)),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Password tidak boleh kosong';
+              if (value.length < 8) return 'Password minimal 8 karakter';
+              return null;
+            },
           ),
           const SizedBox(height: 36),
           SizedBox(
@@ -175,8 +190,8 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _tambahKaryawan,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _blueDark,
-                disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
+                backgroundColor: AppColors.blueDark,
+                disabledBackgroundColor: AppColors.blueDark.withValues(alpha: 0.6),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
@@ -190,29 +205,7 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
             ),
           ),
         ]),
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary));
-  }
-
-  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon, TextInputType? keyboardType}) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: GoogleFonts.inter(fontSize: 14, color: _textPrimary),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.inter(fontSize: 14, color: _textMuted),
-        prefixIcon: Icon(icon, size: 20, color: _textMuted),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+        ),
       ),
     );
   }
@@ -227,11 +220,11 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
-            Icon(Icons.work_outline, size: 20, color: _textMuted),
+            Icon(Icons.work_outline, size: 20, color: AppColors.textMuted),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -239,11 +232,11 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: _selectedDivisi != null ? FontWeight.w500 : FontWeight.w400,
-                  color: _selectedDivisi != null ? _textPrimary : _textMuted,
+                  color: _selectedDivisi != null ? AppColors.textPrimary : AppColors.textMuted,
                 ),
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: _textMuted),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: AppColors.textMuted),
           ],
         ),
       ),
@@ -280,7 +273,7 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Pilih Divisi', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: _textPrimary)),
+                  child: Text('Pilih Divisi', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 ),
               ),
               const SizedBox(height: 12),

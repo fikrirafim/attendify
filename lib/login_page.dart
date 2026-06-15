@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
 import 'hr_dashboard.dart';
 import 'multi_step_registration_page.dart';
+import 'widgets/shared_widgets.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,14 +16,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const Color _blue = Color(0xFF2563EB);
-  static const Color _blueDark = Color(0xFF1D4ED8);
-  static const Color _textPrimary = Color(0xFF1A1D26);
-  static const Color _textSecondary = Color(0xFF6B7280);
-  static const Color _textMuted = Color(0xFF9CA3AF);
-  static const Color _border = Color(0xFFE5E7EB);
-  static const Color _bg = Color(0xFFF4F6F9);
-
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -62,17 +55,17 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Text(
                       'Masukkan email yang terdaftar untuk menerima tautan reset password.',
-                      style: GoogleFonts.inter(fontSize: 13, color: _textSecondary),
+                      style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: resetEmailController,
                       keyboardType: TextInputType.emailAddress,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'contoh@email.com',
-                        hintStyle: GoogleFonts.inter(fontSize: 14, color: _textMuted),
-                        prefixIcon: const Icon(Icons.email_outlined, color: _textMuted, size: 20),
+                        hintStyle: GoogleFonts.inter(fontSize: 14, color: AppColors.textMuted),
+                        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textMuted, size: 20),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -90,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: isResetLoading ? null : () => Navigator.pop(dialogContext),
                   child: Text(
                     'Batal',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _textSecondary),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                   ),
                 ),
                 ElevatedButton(
@@ -143,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _blueDark,
+                    backgroundColor: AppColors.blueDark,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: isResetLoading
@@ -228,7 +221,7 @@ class _LoginPageState extends State<LoginPage> {
     ));
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -266,7 +259,7 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.inter(
             fontSize: 28,
             fontWeight: FontWeight.w800,
-            color: _textPrimary,
+            color: AppColors.textPrimary,
             letterSpacing: -0.5,
           ),
         ),
@@ -276,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: _textSecondary,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -291,7 +284,7 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border, width: 0.8),
+        border: Border.all(color: AppColors.border, width: 0.8),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -310,7 +303,7 @@ class _LoginPageState extends State<LoginPage> {
               style: GoogleFonts.inter(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: _textPrimary,
+                color: AppColors.textPrimary,
                 letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
@@ -321,16 +314,16 @@ class _LoginPageState extends State<LoginPage> {
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: _textSecondary,
+                color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            _buildLabel('Email'),
+            AppLabel(text: 'Email'),
             const SizedBox(height: 8),
             _buildEmailField(),
             const SizedBox(height: 20),
-            _buildLabel('Password'),
+            AppLabel(text: 'Password'),
             const SizedBox(height: 8),
             _buildPasswordField(),
             const SizedBox(height: 14),
@@ -343,25 +336,21 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(text, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary));
-  }
-
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
-      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: 'contoh@email.com',
-        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textMuted),
-        prefixIcon: const Icon(Icons.email_outlined, color: _textMuted, size: 20),
+        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textMuted),
+        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textMuted, size: 20),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDC2626))),
       ),
       validator: (value) {
@@ -376,21 +365,21 @@ class _LoginPageState extends State<LoginPage> {
     return TextFormField(
       controller: _passwordController,
       obscureText: !_isPasswordVisible,
-      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: 'Masukkan password Anda',
-        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textMuted),
-        prefixIcon: const Icon(Icons.lock_outline_rounded, color: _textMuted, size: 20),
+        hintStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textMuted),
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted, size: 20),
         suffixIcon: IconButton(
-          icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: _textMuted, size: 20),
+          icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.textMuted, size: 20),
           onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
         ),
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _blue, width: 1.5)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.blue, width: 1.5)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDC2626))),
       ),
       validator: (value) {
@@ -413,19 +402,19 @@ class _LoginPageState extends State<LoginPage> {
               child: Checkbox(
                 value: _rememberMe,
                 onChanged: (value) => setState(() => _rememberMe = value!),
-                activeColor: _blue,
+                activeColor: AppColors.blue,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                side: const BorderSide(color: _border),
+                side: const BorderSide(color: AppColors.border),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
             const SizedBox(width: 8),
-            Text('Ingat Saya', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: _textSecondary)),
+            Text('Ingat Saya', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
           ],
         ),
         GestureDetector(
           onTap: _handleForgotPassword,
-          child: Text('Lupa Password?', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
+          child: Text('Lupa Password?', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.blue)),
         ),
       ],
     );
@@ -438,8 +427,8 @@ class _LoginPageState extends State<LoginPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _blueDark,
-          disabledBackgroundColor: _blueDark.withValues(alpha: 0.6),
+          backgroundColor: AppColors.blueDark,
+          disabledBackgroundColor: AppColors.blueDark.withValues(alpha: 0.6),
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -456,17 +445,17 @@ class _LoginPageState extends State<LoginPage> {
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MultiStepRegistrationPage())),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(color: _blue.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.business_outlined, size: 18, color: _blue.withValues(alpha: 0.7)),
+          Icon(Icons.business_outlined, size: 18, color: AppColors.blue.withValues(alpha: 0.7)),
           const SizedBox(width: 8),
-          Text('Perusahaan Baru? Daftar HR Di Sini', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
+          Text('Perusahaan Baru? Daftar HR Di Sini', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.blue)),
         ]),
       ),
     );
   }
 
   Widget _buildFooter() {
-    return Text('\u00A9 2026 Attendify', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _textMuted), textAlign: TextAlign.center);
+    return Text('\u00A9 2026 Attendify', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textMuted), textAlign: TextAlign.center);
   }
 }

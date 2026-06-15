@@ -13,6 +13,7 @@ import 'approval_izin_page.dart';
 import 'setting_jam_page.dart';
 import 'setting_lokasi_page.dart';
 import 'today_attendance_page.dart';
+import 'widgets/shared_widgets.dart';
 
 class HRDashboard extends StatefulWidget {
   const HRDashboard({super.key});
@@ -121,7 +122,7 @@ class _HRHomeTab extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _buildEmptyCompanyState(context),
                 const SizedBox(height: 20),
-                _buildSectionTitle('Menu Manajemen'),
+                AppSectionTitle(title: 'Menu Manajemen'),
                 const SizedBox(height: 12),
                 _buildMenuList(context),
               ]),
@@ -129,7 +130,7 @@ class _HRHomeTab extends StatelessWidget {
           }
 
           final companyId = companyDoc.id;
-          final companyName = (companyDoc.data() as Map<String, dynamic>)['name'] ?? 'Perusahaan Anda';
+          final companyName = (companyDoc.data() as Map<String, dynamic>)['nama_perusahaan'] ?? 'Perusahaan Anda';
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -145,7 +146,7 @@ class _HRHomeTab extends StatelessWidget {
               const SizedBox(height: 20),
               _buildTotalKaryawan(companyId),
               const SizedBox(height: 20),
-              _buildSectionTitle('Menu Manajemen'),
+              AppSectionTitle(title: 'Menu Manajemen'),
               const SizedBox(height: 12),
               _buildMenuList(context),
             ]),
@@ -209,9 +210,9 @@ class _HRHomeTab extends StatelessWidget {
           Container(width: 44, height: 44, decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.blue, Color(0xFF1D4ED8)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(14)), child: const Center(child: Icon(Icons.business, color: Colors.white))),
         ]),
         const SizedBox(height: 18),
-        _buildCard(
+        AppCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _buildCardTitle(Icons.info_outline, 'Perusahaan Belum Lengkap'),
+            AppCardTitle(icon: Icons.info_outline, title: 'Perusahaan Belum Lengkap'),
             const SizedBox(height: 8),
             Text('Data perusahaan tidak ditemukan. Silakan daftar ulang sebagai HR untuk membuat data perusahaan baru.', style: GoogleFonts.inter(color: AppColors.textSecondary)),
             const SizedBox(height: 12),
@@ -270,8 +271,8 @@ class _HRHomeTab extends StatelessWidget {
               }
             }
 
-            return _buildCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildCardTitle(Icons.bar_chart_rounded, 'Statistik Hari Ini'),
+            return AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              AppCardTitle(icon: Icons.bar_chart_rounded, title: 'Statistik Hari Ini'),
               const SizedBox(height: 8),
               Row(children: [
                 _buildStatCell(AppColors.green, AppColors.greenLight, '$hadir', 'Hadir'),
@@ -292,7 +293,7 @@ class _HRHomeTab extends StatelessWidget {
       stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'karyawan').where('company_id', isEqualTo: companyId).snapshots(),
       builder: (context, snapshot) {
         final int total = snapshot.hasData ? snapshot.data!.docs.length : 0;
-        return _buildCard(child: Row(children: [
+        return AppCard(child: Row(children: [
           Container(width: 48, height: 48, decoration: BoxDecoration(color: AppColors.blueLight, borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.people_alt_rounded, color: AppColors.blue, size: 24)),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Total Karyawan Terdaftar', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)), const SizedBox(height: 2), Text('$total', style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1))])),
@@ -333,11 +334,11 @@ class _HRHomeTab extends StatelessWidget {
               }
             }
 
-            return _buildCard(
+            return AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildCardTitle(Icons.bar_chart_rounded, 'Grafik Kehadiran Hari Ini'),
+                  AppCardTitle(icon: Icons.bar_chart_rounded, title: 'Grafik Kehadiran Hari Ini'),
                   const SizedBox(height: 24),
                   SizedBox(
                     height: 250,
@@ -440,7 +441,7 @@ class _HRHomeTab extends StatelessWidget {
   }
 
   Widget _buildKehadiranHariIni(BuildContext context, String companyId) {
-    return _buildCard(
+    return AppCard(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => Navigator.push(
@@ -496,13 +497,13 @@ class _HRHomeTab extends StatelessWidget {
   Widget _buildMenuList(BuildContext context) {
     return Container(decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))]), child: Column(children: [
       _buildMenuItem(context, icon: Icons.people_outline_rounded, iconBg: AppColors.blueLight, iconColor: AppColors.blue, title: 'Manajemen Karyawan', subtitle: 'Input data, rekap absen & edit profil', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const KaryawanListPage()))),
-      _buildDivider(),
+      const AppDivider(),
       _buildMenuItem(context, icon: Icons.description_outlined, iconBg: AppColors.orangeLight, iconColor: AppColors.orange, title: 'Rekapitulasi Kehadiran', subtitle: 'Lihat rekap absensi seluruh karyawan', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const KaryawanListPage()))),
-      _buildDivider(),
+      const AppDivider(),
       _buildMenuItem(context, icon: Icons.checklist_rounded, iconBg: AppColors.greenLight, iconColor: AppColors.green, title: 'Persetujuan Pengajuan', subtitle: 'Review pengajuan', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ApprovalIzinPage()))),
-      _buildDivider(),
+      const AppDivider(),
       _buildMenuItem(context, icon: Icons.access_time_rounded, iconBg: const Color(0xFFFFF7ED), iconColor: AppColors.orange, title: 'Pengaturan Jam Operasional', subtitle: 'Ubah batas waktu masuk dan pulang', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingJamPage()))),
-      _buildDivider(),
+      const AppDivider(),
       _buildMenuItem(context, icon: Icons.location_on_outlined, iconBg: const Color(0xFFF0FDF4), iconColor: const Color(0xFF16A34A), title: 'Pengaturan Lokasi Absensi', subtitle: 'Atur titik koordinat dan radius kantor', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingLokasiPage()))),
     ]));
   }
@@ -513,21 +514,5 @@ class _HRHomeTab extends StatelessWidget {
 
   Widget _buildStatCell(Color color, Color bg, String value, String label) {
     return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))), child: Column(children: [Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: color)), const SizedBox(height: 2), Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary))])));
-  }
-
-  Widget _buildCard({required Widget child}) {
-    return Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))]), child: child);
-  }
-
-  Widget _buildCardTitle(IconData icon, String title) {
-    return Padding(padding: const EdgeInsets.only(bottom: 14), child: Row(children: [Icon(icon, size: 18, color: AppColors.blue), const SizedBox(width: 8), Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary))]));
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
-  }
-
-  Widget _buildDivider() {
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: 18), child: Container(height: 1, color: AppColors.borderLight));
   }
 }

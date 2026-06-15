@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'main.dart';
+import 'utils/app_utils.dart';
 
 class ApprovalIzinPage extends StatefulWidget {
   const ApprovalIzinPage({super.key});
@@ -14,16 +16,6 @@ class ApprovalIzinPage extends StatefulWidget {
 class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
   String? _companyId;
   bool _isLoadingCompany = true;
-
-  static const _blue = Color(0xFF2563EB);
-  static const _textPrimary = Color(0xFF1A1D26);
-  static const _textSecondary = Color(0xFF6B7280);
-  static const _textMuted = Color(0xFF9CA3AF);
-  static const _green = Color(0xFF16A34A);
-  static const _orange = Color(0xFFEA580C);
-  static const _red = Color(0xFFDC2626);
-  static const _border = Color(0xFFE5E7EB);
-  static const _bg = Color(0xFFF4F6F9);
 
   @override
   void initState() {
@@ -49,10 +41,10 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
   Color _izinColor(String? jenis) {
     switch (jenis?.toLowerCase()) {
       case 'sakit': return const Color(0xFFF43F5E);
-      case 'cuti tahunan': return _blue;
-      case 'izin': return _orange;
+      case 'cuti tahunan': return AppColors.blue;
+      case 'izin': return AppColors.orange;
       case 'dinas luar': return const Color(0xFF7C3AED);
-      default: return _textSecondary;
+      default: return AppColors.textSecondary;
     }
   }
 
@@ -77,7 +69,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
   }
 
   Future<void> _prosesApproval(String docId, Map<String, dynamic> dataIzin, bool isDisetujui) async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: _blue)));
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.blue)));
 
     try {
       final firestore = FirebaseFirestore.instance;
@@ -132,19 +124,14 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(isDisetujui ? 'Pengajuan disetujui. Data absensi otomatis diperbarui.' : 'Pengajuan ditolak.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
-        backgroundColor: isDisetujui ? _green : _orange,
+        backgroundColor: isDisetujui ? AppColors.green : AppColors.orange,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: $e', style: GoogleFonts.inter(color: Colors.white)),
-        backgroundColor: _red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
+      showCustomError(context, 'Gagal memproses pengajuan. Silakan coba lagi.');
     }
   }
 
@@ -164,14 +151,14 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 20),
               Row(children: [
                 Container(width: 40, height: 40, decoration: BoxDecoration(color: _izinBg(jenis), borderRadius: BorderRadius.circular(12)), child: Icon(_izinIcon(jenis), color: color, size: 20)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(data['nama'] ?? '-', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: _textPrimary)),
-                  Text('NRP: ${data['nrp'] ?? '-'}', style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
+                  Text(data['nama'] ?? '-', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  Text('NRP: ${data['nrp'] ?? '-'}', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
                 ])),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _izinBg(jenis), borderRadius: BorderRadius.circular(8)), child: Text(jenis, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
               ]),
@@ -179,12 +166,12 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
               _detailRow(Icons.date_range_outlined, 'Tanggal', '${data['tanggal_mulai'] ?? '-'}  →  ${data['tanggal_selesai'] ?? '-'}'),
               if (data['jam_izin'] != null) _detailRow(Icons.access_time_outlined, 'Estimasi Jam', '${data['jam_izin']} WIB'),
               const SizedBox(height: 16),
-              Text('Alasan', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: _textPrimary)),
+              Text('Alasan', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
               const SizedBox(height: 8),
-              Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border, width: 0.7)), child: Text(data['keterangan'] ?? '-', style: GoogleFonts.inter(fontSize: 13, color: _textSecondary, height: 1.5))),
+              Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border, width: 0.7)), child: Text(data['keterangan'] ?? '-', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.5))),
               if (data['bukti_url'] != null && data['bukti_url'].toString().isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Text('Lampiran Bukti', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: _textPrimary)),
+                Text('Lampiran Bukti', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -196,23 +183,23 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                       errorBuilder: (_, __, ___) => Container(
                         width: screenWidth,
                         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                        decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+                        decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
                         child: Column(children: [
-                          Icon(Icons.broken_image_outlined, color: _textMuted, size: 36),
+                          Icon(Icons.broken_image_outlined, color: AppColors.textMuted, size: 36),
                           const SizedBox(height: 10),
-                          Text('Preview tidak tersedia', style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
+                          Text('Preview tidak tersedia', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
                           const SizedBox(height: 10),
                           OutlinedButton.icon(
                             onPressed: () async {
                               final url = Uri.parse(data['bukti_url']);
                               if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
                                 if (!ctx.mounted) return;
-                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Gagal membuka link', style: GoogleFonts.inter(color: Colors.white)), backgroundColor: _red));
+                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Gagal membuka link', style: GoogleFonts.inter(color: Colors.white)), backgroundColor: AppColors.red));
                               }
                             },
                             icon: const Icon(Icons.open_in_new_rounded, size: 16),
                             label: Text('Buka di Tab Baru', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                            style: OutlinedButton.styleFrom(foregroundColor: _blue, side: const BorderSide(color: _blue), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                            style: OutlinedButton.styleFrom(foregroundColor: AppColors.blue, side: const BorderSide(color: AppColors.blue), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                           ),
                         ]),
                       ),
@@ -223,13 +210,13 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
               Row(children: [
                 Expanded(child: OutlinedButton(
                   onPressed: () { Navigator.pop(ctx); _prosesApproval(docId, data, false); },
-                  style: OutlinedButton.styleFrom(foregroundColor: _red, side: const BorderSide(color: _red), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.red, side: const BorderSide(color: AppColors.red), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: Text('Tolak', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
                 )),
                 const SizedBox(width: 12),
                 Expanded(child: ElevatedButton(
                   onPressed: () { Navigator.pop(ctx); _prosesApproval(docId, data, true); },
-                  style: ElevatedButton.styleFrom(backgroundColor: _green, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: Text('Setujui', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
                 )),
               ]),
@@ -244,10 +231,10 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 18, color: _textMuted),
+        Icon(icon, size: 18, color: AppColors.textMuted),
         const SizedBox(width: 10),
-        SizedBox(width: 100, child: Text(label, style: GoogleFonts.inter(fontSize: 12, color: _textMuted))),
-        Expanded(child: Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary))),
+        SizedBox(width: 100, child: Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted))),
+        Expanded(child: Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary))),
       ]),
     );
   }
@@ -255,33 +242,33 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Persetujuan Izin & Cuti', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: _textPrimary, fontSize: 18)),
+        title: Text('Persetujuan Izin & Cuti', style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: _textPrimary),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: _border)),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: AppColors.border)),
       ),
       body: _isLoadingCompany
-          ? const Center(child: CircularProgressIndicator(color: _blue))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
           : _companyId == null
-              ? Center(child: Text('Gagal memuat data perusahaan.', style: GoogleFonts.inter(color: _textMuted)))
+              ? Center(child: Text('Gagal memuat data perusahaan.', style: GoogleFonts.inter(color: AppColors.textMuted)))
               : StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('pengajuan_izin').where('status_approval', isEqualTo: 'Menunggu').where('company_id', isEqualTo: _companyId).snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: _blue));
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: AppColors.blue));
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(child: Padding(
                         padding: const EdgeInsets.all(40),
                         child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Container(width: 80, height: 80, decoration: BoxDecoration(color: _blue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(24)), child: Icon(Icons.mark_email_read_outlined, size: 36, color: _blue.withValues(alpha: 0.4))),
+                          Container(width: 80, height: 80, decoration: BoxDecoration(color: AppColors.blue.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(24)), child: Icon(Icons.mark_email_read_outlined, size: 36, color: AppColors.blue.withValues(alpha: 0.4))),
                           const SizedBox(height: 20),
-                          Text('Tidak ada pengajuan izin saat ini', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: _textSecondary)),
+                          Text('Tidak ada pengajuan izin saat ini', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                           const SizedBox(height: 6),
-                          Text('Semua pengajuan sudah diproses', style: GoogleFonts.inter(fontSize: 12, color: _textMuted)),
+                          Text('Semua pengajuan sudah diproses', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textMuted)),
                         ]),
                       ));
                     }
@@ -304,7 +291,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border, width: 0.8), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
                           child: InkWell(
                             onTap: () => _lihatDetail(context, docId, data),
                             borderRadius: BorderRadius.circular(16),
@@ -315,25 +302,25 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                                 const SizedBox(width: 14),
                                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                   Row(children: [
-                                    Expanded(child: Text(nama, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: _textPrimary), overflow: TextOverflow.ellipsis)),
+                                    Expanded(child: Text(nama, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis)),
                                     if (adaFoto) ...[
                                       const SizedBox(width: 6),
-                                      Icon(Icons.attachment_rounded, size: 14, color: _blue.withValues(alpha: 0.6)),
+                                      Icon(Icons.attachment_rounded, size: 14, color: AppColors.blue.withValues(alpha: 0.6)),
                                     ],
                                   ]),
                                   const SizedBox(height: 4),
                                   Row(children: [
                                     Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)), child: Text(jenis, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: color))),
                                     const SizedBox(width: 8),
-                                    Text(tgl, style: GoogleFonts.inter(fontSize: 11, color: _textMuted)),
+                                    Text(tgl, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted)),
                                   ]),
                                   const SizedBox(height: 4),
-                                  Text(ket, style: GoogleFonts.inter(fontSize: 11, color: _textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  Text(ket, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ])),
                                 const SizedBox(width: 8),
                                 OutlinedButton(
                                   onPressed: () => _lihatDetail(context, docId, data),
-                                  style: OutlinedButton.styleFrom(foregroundColor: _blue, side: BorderSide(color: _blue.withValues(alpha: 0.3)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.blue, side: BorderSide(color: AppColors.blue.withValues(alpha: 0.3)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                                   child: Text('Review', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
                                 ),
                               ]),

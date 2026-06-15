@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
 import 'login_page.dart';
 import 'history_page.dart';
+import 'widgets/shared_widgets.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -607,7 +608,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: 'Riwayat Presensi',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryPage())),
           ),
-          _buildDivider(),
+          const AppDivider(),
           _buildMenuItem(
             icon: Icons.description_outlined,
             iconBg: AppColors.orangeLight,
@@ -620,7 +621,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ));
             },
           ),
-          _buildDivider(),
+          const AppDivider(),
           _buildMenuItem(
             icon: Icons.lock_outline_rounded,
             iconBg: AppColors.blueLight,
@@ -628,7 +629,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: 'Ubah Password',
             onTap: _handleChangePassword,
           ),
-          _buildDivider(),
+          const AppDivider(),
           _buildMenuItem(
             icon: Icons.logout_rounded,
             iconBg: AppColors.redLight,
@@ -688,10 +689,4 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Container(height: 1, color: AppColors.borderLight),
-    );
-  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'absen_page.dart';
@@ -8,7 +9,8 @@ import 'profile_page.dart';
 import 'home_page.dart';
 import 'splash_screen_page.dart';
 
-void main() async {
+Future<void> main() async {
+  await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
@@ -21,6 +23,7 @@ class AppColors {
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textMuted = Color(0xFF9CA3AF);
   static const Color blue = Color(0xFF2563EB);
+  static const Color blueDark = Color(0xFF1D4ED8);
   static const Color blueLight = Color(0xFFEFF6FF);
   static const Color green = Color(0xFF16A34A);
   static const Color greenLight = Color(0xFFF0FDF4);
