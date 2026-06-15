@@ -14,6 +14,179 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  void _handleChangePassword() {
+    final passwordLamaController = TextEditingController();
+    final passwordBaruController = TextEditingController();
+    final konfirmasiController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                'Ubah Password',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17),
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: passwordLamaController,
+                      obscureText: true,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Password Lama',
+                        labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Masukkan password lama' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: passwordBaruController,
+                      obscureText: true,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Password Baru',
+                        labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Masukkan password baru';
+                        if (v.length < 6) return 'Password minimal 6 karakter';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: konfirmasiController,
+                      obscureText: true,
+                      style: GoogleFonts.inter(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Konfirmasi Password Baru',
+                        labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Masukkan konfirmasi password';
+                        if (v != passwordBaruController.text) return 'Password tidak cocok';
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Batal',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+
+                          setDialogState(() => isLoading = true);
+
+                          try {
+                            final email = FirebaseAuth.instance.currentUser!.email;
+                            AuthCredential credential = EmailAuthProvider.credential(
+                              email: email!,
+                              password: passwordLamaController.text,
+                            );
+                            await FirebaseAuth.instance.currentUser!
+                                .reauthenticateWithCredential(credential);
+                            await FirebaseAuth.instance.currentUser!
+                                .updatePassword(passwordBaruController.text);
+
+                            if (!dialogContext.mounted) return;
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Password berhasil diubah!',
+                                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                                ),
+                                backgroundColor: AppColors.green,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            );
+                          } on FirebaseAuthException catch (e) {
+                            setDialogState(() => isLoading = false);
+                            String message = 'Terjadi kesalahan.';
+                            if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+                              message = 'Password lama salah!';
+                            }
+                            if (!dialogContext.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  message,
+                                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                                ),
+                                backgroundColor: AppColors.red,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            );
+                          } catch (e) {
+                            setDialogState(() => isLoading = false);
+                            if (!dialogContext.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Terjadi kesalahan tak terduga.',
+                                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                                ),
+                                backgroundColor: AppColors.red,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.blue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Simpan',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _handleLogout() {
     showDialog(
       context: context,
@@ -453,12 +626,7 @@ class _ProfilePageState extends State<ProfilePage> {
             iconBg: AppColors.blueLight,
             iconColor: AppColors.blue,
             title: 'Ubah Password',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Fitur segera hadir.'),
-                backgroundColor: AppColors.blue,
-              ));
-            },
+            onTap: _handleChangePassword,
           ),
           _buildDivider(),
           _buildMenuItem(

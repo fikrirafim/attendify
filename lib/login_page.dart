@@ -37,6 +37,134 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _handleForgotPassword() async {
+    final resetEmailController = TextEditingController();
+    final resetFormKey = GlobalKey<FormState>();
+    bool isResetLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                'Lupa Password',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17),
+              ),
+              content: Form(
+                key: resetFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Masukkan email yang terdaftar untuk menerima tautan reset password.',
+                      style: GoogleFonts.inter(fontSize: 13, color: _textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: resetEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: _textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'contoh@email.com',
+                        hintStyle: GoogleFonts.inter(fontSize: 14, color: _textMuted),
+                        prefixIcon: const Icon(Icons.email_outlined, color: _textMuted, size: 20),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Email tidak boleh kosong';
+                        if (!value.contains('@') || !value.contains('.')) return 'Masukkan email yang valid';
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isResetLoading ? null : () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Batal',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: _textSecondary),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isResetLoading
+                      ? null
+                      : () async {
+                          if (!resetFormKey.currentState!.validate()) return;
+
+                          setDialogState(() => isResetLoading = true);
+
+                          try {
+                            await FirebaseAuth.instance.sendPasswordResetEmail(
+                              email: resetEmailController.text.trim(),
+                            );
+
+                            if (!dialogContext.mounted) return;
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(
+                                'Link reset password berhasil dikirim! Silakan cek Inbox atau folder Spam email Anda.',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                              ),
+                              backgroundColor: const Color(0xFF16A34A),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              duration: const Duration(seconds: 4),
+                            ));
+                          } on FirebaseAuthException catch (e) {
+                            setDialogState(() => isResetLoading = false);
+                            String message = 'Terjadi kesalahan. Coba lagi.';
+                            if (e.code == 'user-not-found') {
+                              message = 'Email tidak terdaftar di sistem kami.';
+                            }
+                            if (!dialogContext.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(message, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                              backgroundColor: const Color(0xFFDC2626),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ));
+                          } catch (e) {
+                            setDialogState(() => isResetLoading = false);
+                            if (!dialogContext.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Terjadi kesalahan jaringan.', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                              backgroundColor: const Color(0xFFDC2626),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ));
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _blueDark,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: isResetLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          'Kirim Link',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -127,29 +255,10 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLogo() {
     return Column(
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_blue, _blueDark],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: _blue.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.fingerprint_rounded,
-            size: 36,
-            color: Colors.white,
-          ),
+        Image.asset(
+          'assets/images/logo.png',
+          height: 100,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 20),
         Text(
@@ -315,14 +424,7 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
         GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Fitur akan segera hadir.', style: GoogleFonts.inter(fontSize: 13, color: Colors.white)),
-              backgroundColor: _blue,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ));
-          },
+          onTap: _handleForgotPassword,
           child: Text('Lupa Password?', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _blue)),
         ),
       ],
