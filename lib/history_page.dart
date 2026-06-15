@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -44,10 +45,16 @@ class HistoryPage extends StatelessWidget {
         foregroundColor: Colors.black87,
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('absensi')
-            .orderBy('waktu_absen', descending: true)
-            .snapshots(),
+        stream: () {
+          final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+          // Jika muncul error tentang index, buka link yang muncul di
+          // Debug Console untuk membuat composite index di Firebase Console.
+          return FirebaseFirestore.instance
+              .collection('absensi')
+              .where('uid', isEqualTo: currentUserId)
+              .orderBy('waktu_absen', descending: true)
+              .snapshots();
+        }(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -98,7 +105,7 @@ class HistoryPage extends StatelessWidget {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Semua riwayat absen dari database',
+                        'Riwayat absensi kamu',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),

@@ -222,8 +222,10 @@ class _AbsenPageState extends State<AbsenPage> {
       }
 
       var dataUser = userSnapshot.docs.first.data() as Map<String, dynamic>;
-      String inputNrp = dataUser['nrp'] ?? '000000';
-      String namaSiswa = dataUser['nama'] ?? 'Karyawan';
+      String inputNrp = (dataUser['nrp'] != null && dataUser['nrp'].toString().isNotEmpty)
+          ? dataUser['nrp']
+          : '-';
+      String namaSiswa = dataUser['nama'] ?? dataUser['nama_hr'] ?? 'Karyawan';
 
       DateTime waktuSekarang = DateTime.now();
       String hari = waktuSekarang.day.toString().padLeft(2, '0');
@@ -342,6 +344,7 @@ class _AbsenPageState extends State<AbsenPage> {
       Position currentPosition = await Geolocator.getCurrentPosition();
 
       await firestore.collection('absensi').doc(uniqueId).set({
+        'uid': currentUser.uid,
         'nrp': inputNrp,
         'nama': namaSiswa,
         'latitude': currentPosition.latitude,

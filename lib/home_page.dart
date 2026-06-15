@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> {
           String namaPerusahaan = 'Attendify User';
           if (userSnap.hasData && userSnap.data!.docs.isNotEmpty) {
             var userData = userSnap.data!.docs.first.data() as Map<String, dynamic>;
-            namaSiswa = userData['nama'] ?? 'Karyawan';
+            namaSiswa = userData['nama'] ?? userData['nama_hr'] ?? 'Karyawan';
             nrpSiswa = userData['nrp'] ?? '';
             namaPerusahaan = userData['nama_perusahaan'] ?? 'Attendify User';
           }

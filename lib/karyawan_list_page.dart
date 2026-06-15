@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'manage_employee_page.dart';
+import 'employee_detail_history_page.dart';
 
 class KaryawanListPage extends StatefulWidget {
   const KaryawanListPage({super.key});
@@ -213,7 +214,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
     );
   }
 
-  void _showRekapAbsen(BuildContext context, String nama, String nrp) {
+  void _showRekapAbsen(BuildContext context, String employeeUid, String nama, String nrp) {
     int selectedMonth = DateTime.now().month;
     int selectedYear = DateTime.now().year;
     const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -277,6 +278,35 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                   },
                 ),
                 const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EmployeeDetailHistoryPage(
+                            employeeUid: employeeUid,
+                            employeeName: nama,
+                            selectedMonth: selectedMonth,
+                            selectedYear: selectedYear,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.visibility_rounded, size: 18),
+                    label: Text('Lihat Detail Absen', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _blue,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: _bg, foregroundColor: _textPrimary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _border)), padding: const EdgeInsets.symmetric(vertical: 14)), child: Text('Tutup', style: GoogleFonts.inter(fontWeight: FontWeight.w600)))),
               ]),
             );
@@ -364,7 +394,7 @@ class _KaryawanListPageState extends State<KaryawanListPage> {
                                 const SizedBox(width: 4),
                                 _actionButton(Icons.delete_outline_rounded, _red, () => _hapusKaryawan(context, docId, nama)),
                                 const SizedBox(width: 4),
-                                _actionButton(Icons.analytics_outlined, const Color(0xFFEA580C), () => _showRekapAbsen(context, nama, nrp)),
+                                _actionButton(Icons.analytics_outlined, const Color(0xFFEA580C), () => _showRekapAbsen(context, docId, nama, nrp)),
                               ]),
                             ]),
                           ),

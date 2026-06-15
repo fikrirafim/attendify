@@ -12,6 +12,7 @@ import 'karyawan_list_page.dart';
 import 'approval_izin_page.dart';
 import 'setting_jam_page.dart';
 import 'setting_lokasi_page.dart';
+import 'today_attendance_page.dart';
 
 class HRDashboard extends StatefulWidget {
   const HRDashboard({super.key});
@@ -139,6 +140,8 @@ class _HRHomeTab extends StatelessWidget {
               _buildStatistikHariIni(companyId),
               const SizedBox(height: 16),
               _buildChartStatistik(companyId),
+              const SizedBox(height: 20),
+              _buildKehadiranHariIni(context, companyId),
               const SizedBox(height: 20),
               _buildTotalKaryawan(companyId),
               const SizedBox(height: 20),
@@ -433,6 +436,60 @@ class _HRHomeTab extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  Widget _buildKehadiranHariIni(BuildContext context, String companyId) {
+    return _buildCard(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => TodayAttendancePage(companyId: companyId)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.greenLight,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.people_outline_rounded, color: AppColors.green, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Detail Kehadiran Hari Ini',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Lihat daftar karyawan yang sudah melakukan presensi',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 22),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

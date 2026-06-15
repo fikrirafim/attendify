@@ -283,7 +283,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
       var userData =
           userSnap.docs.first.data() as Map<String, dynamic>;
       String nrpSiswa = userData['nrp'] ?? '000000';
-      String namaSiswa = userData['nama'] ?? 'Karyawan';
+      String namaSiswa = userData['nama'] ?? userData['nama_hr'] ?? 'Karyawan';
 
       String downloadUrl = "";
       if (_fotoBukti != null) {
