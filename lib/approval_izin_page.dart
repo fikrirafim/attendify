@@ -68,23 +68,51 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
     }
   }
 
+  DateTime? _parseDate(String dateStr) {
+    try {
+      List<String> parts = dateStr.split('-');
+      if (parts.length == 3) {
+        if (parts[0].length == 2) {
+          return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        }
+        return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> _prosesApproval(String docId, Map<String, dynamic> dataIzin, bool isDisetujui) async {
     showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.blue)));
 
     try {
       final firestore = FirebaseFirestore.instance;
+      String nrp = dataIzin['nrp'] ?? '';
+      String nama = dataIzin['nama'] ?? '';
+      String jenis = dataIzin['jenis_izin'] ?? 'Izin';
+      String tglMulai = dataIzin['tanggal_mulai'] ?? '';
+      String tglSelesai = dataIzin['tanggal_selesai'] ?? tglMulai;
 
       await firestore.collection('pengajuan_izin').doc(docId).update({
         'status_approval': isDisetujui ? 'Disetujui' : 'Ditolak',
       });
 
-      if (isDisetujui) {
-        String nrp = dataIzin['nrp'] ?? '';
-        String nama = dataIzin['nama'] ?? '';
-        String jenis = dataIzin['jenis_izin'] ?? 'Izin';
-        String tglMulai = dataIzin['tanggal_mulai'] ?? '';
-        String tglSelesai = dataIzin['tanggal_selesai'] ?? tglMulai;
+      var userQuery = await firestore.collection('users').where('nrp', isEqualTo: nrp).limit(1).get();
+      String targetUid = userQuery.docs.isNotEmpty ? userQuery.docs.first.id : '';
 
+      if (targetUid.isNotEmpty) {
+        String tanggalRange = tglMulai == tglSelesai ? tglMulai : '$tglMulai s/d $tglSelesai';
+        await firestore.collection('notifications').add({
+          'uid': targetUid,
+          'title': isDisetujui ? '$jenis Disetujui' : '$jenis Ditolak',
+          'message': isDisetujui
+              ? 'Pengajuan $jenis Anda untuk tanggal $tanggalRange telah disetujui.'
+              : 'Pengajuan $jenis Anda untuk tanggal $tanggalRange telah ditolak.',
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      }
+
+      if (isDisetujui) {
         String uniqueId = "absen_${nrp}_${DateTime.now().millisecondsSinceEpoch}";
         String waktuAbsen = "$tglMulai 08:00";
 
@@ -100,21 +128,17 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
           'company_id': _companyId ?? '',
         });
 
-        if (jenis == 'Cuti Tahunan') {
+        if (jenis.toLowerCase().contains('cuti') && targetUid.isNotEmpty) {
           try {
-            List<String> startParts = tglMulai.split('-');
-            List<String> endParts = tglSelesai.split('-');
-            DateTime start = DateTime(int.parse(startParts[2]), int.parse(startParts[1]), int.parse(startParts[0]));
-            DateTime end = DateTime(int.parse(endParts[2]), int.parse(endParts[1]), int.parse(endParts[0]));
-            int lamaCuti = end.difference(start).inDays + 1;
-
-            var userQuery = await firestore.collection('users').where('nrp', isEqualTo: nrp).limit(1).get();
-            if (userQuery.docs.isNotEmpty) {
-              var userData = userQuery.docs.first.data();
-              int sisaCutiSaatIni = userData['sisa_cuti'] ?? 12;
-              await firestore.collection('users').doc(userQuery.docs.first.id).update({
-                'sisa_cuti': sisaCutiSaatIni - lamaCuti,
-              });
+            DateTime? start = _parseDate(tglMulai);
+            DateTime? end = _parseDate(tglSelesai);
+            if (start != null && end != null) {
+              int lamaCuti = end.difference(start).inDays + 1;
+              if (lamaCuti > 0) {
+                await firestore.collection('users').doc(targetUid).update({
+                  'sisa_cuti': FieldValue.increment(-lamaCuti),
+                });
+              }
             }
           } catch (_) {}
         }
@@ -135,10 +159,84 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
     }
   }
 
+  Future<void> _prosesPembatalan(String docId, Map<String, dynamic> dataIzin, bool disetujui) async {
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.blue)));
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      String nrp = dataIzin['nrp'] ?? '';
+      String jenis = dataIzin['jenis_izin'] ?? 'Izin';
+      String tglMulai = dataIzin['tanggal_mulai'] ?? '';
+      String tglSelesai = dataIzin['tanggal_selesai'] ?? tglMulai;
+
+      var userQuery = await firestore.collection('users').where('nrp', isEqualTo: nrp).limit(1).get();
+      String targetUid = userQuery.docs.isNotEmpty ? userQuery.docs.first.id : '';
+      String tanggalRange = tglMulai == tglSelesai ? tglMulai : '$tglMulai s/d $tglSelesai';
+
+      if (disetujui) {
+        await firestore.collection('pengajuan_izin').doc(docId).update({
+          'status_approval': 'Dibatalkan',
+        });
+
+        if (jenis.toLowerCase().contains('cuti') && targetUid.isNotEmpty) {
+          DateTime? start = _parseDate(tglMulai);
+          DateTime? end = _parseDate(tglSelesai);
+          if (start != null && end != null) {
+            int lamaCuti = end.difference(start).inDays + 1;
+            if (lamaCuti > 0) {
+              await firestore.collection('users').doc(targetUid).update({
+                'sisa_cuti': FieldValue.increment(lamaCuti),
+              });
+            }
+          }
+        }
+
+        if (targetUid.isNotEmpty) {
+          await firestore.collection('notifications').add({
+            'uid': targetUid,
+            'title': 'Pembatalan Cuti Disetujui',
+            'message': 'Pembatalan cuti Anda untuk tanggal $tanggalRange telah disetujui. Jatah cuti telah dikembalikan.',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
+      } else {
+        await firestore.collection('pengajuan_izin').doc(docId).update({
+          'status_approval': 'Disetujui',
+        });
+
+        if (targetUid.isNotEmpty) {
+          await firestore.collection('notifications').add({
+            'uid': targetUid,
+            'title': 'Pembatalan Cuti Ditolak',
+            'message': 'Pengajuan pembatalan cuti Anda untuk tanggal $tanggalRange ditolak. Cuti tetap berlaku.',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(disetujui ? 'Pembatalan cuti disetujui. Jatah cuti dikembalikan.' : 'Pembatalan cuti ditolak.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: disetujui ? AppColors.green : AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      showCustomError(context, 'Gagal memproses pembatalan. Silakan coba lagi.');
+    }
+  }
+
   void _lihatDetail(BuildContext context, String docId, Map<String, dynamic> data) {
     final screenWidth = MediaQuery.of(context).size.width;
     final jenis = data['jenis_izin'] ?? 'Izin';
     final color = _izinColor(jenis);
+    final statusApproval = data['status_approval'] ?? 'Menunggu';
+    final isPembatalan = statusApproval == 'Menunggu Pembatalan';
 
     showModalBottomSheet(
       context: context,
@@ -162,6 +260,19 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                 ])),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _izinBg(jenis), borderRadius: BorderRadius.circular(8)), child: Text(jenis, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: color))),
               ]),
+              if (isPembatalan) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFFED7AA))),
+                  child: Row(children: [
+                    const Icon(Icons.cancel_schedule_send_rounded, size: 18, color: AppColors.orange),
+                    const SizedBox(width: 8),
+                    Text('Karyawan mengajukan pembatalan cuti ini', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF9A3412))),
+                  ]),
+                ),
+              ],
               const SizedBox(height: 24),
               _detailRow(Icons.date_range_outlined, 'Tanggal', '${data['tanggal_mulai'] ?? '-'}  →  ${data['tanggal_selesai'] ?? '-'}'),
               if (data['jam_izin'] != null) _detailRow(Icons.access_time_outlined, 'Estimasi Jam', '${data['jam_izin']} WIB'),
@@ -207,19 +318,35 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                 ),
               ],
               const SizedBox(height: 28),
-              Row(children: [
-                Expanded(child: OutlinedButton(
-                  onPressed: () { Navigator.pop(ctx); _prosesApproval(docId, data, false); },
-                  style: OutlinedButton.styleFrom(foregroundColor: AppColors.red, side: const BorderSide(color: AppColors.red), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: Text('Tolak', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
-                )),
-                const SizedBox(width: 12),
-                Expanded(child: ElevatedButton(
-                  onPressed: () { Navigator.pop(ctx); _prosesApproval(docId, data, true); },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: Text('Setujui', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
-                )),
-              ]),
+              if (isPembatalan) ...[
+                Row(children: [
+                  Expanded(child: OutlinedButton(
+                    onPressed: () { Navigator.pop(ctx); _prosesPembatalan(docId, data, false); },
+                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.orange, side: const BorderSide(color: AppColors.orange), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text('Tolak Pembatalan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: ElevatedButton(
+                    onPressed: () { Navigator.pop(ctx); _prosesPembatalan(docId, data, true); },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text('Setujui Pembatalan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
+                  )),
+                ]),
+              ] else ...[
+                Row(children: [
+                  Expanded(child: OutlinedButton(
+                    onPressed: () { Navigator.pop(ctx); _prosesApproval(docId, data, false); },
+                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.red, side: const BorderSide(color: AppColors.red), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text('Tolak', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: ElevatedButton(
+                    onPressed: () { Navigator.pop(ctx); _prosesApproval(docId, data, true); },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.green, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text('Setujui', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white)),
+                  )),
+                ]),
+              ],
             ]),
           ),
         );
@@ -257,7 +384,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
           : _companyId == null
               ? Center(child: Text('Gagal memuat data perusahaan.', style: GoogleFonts.inter(color: AppColors.textMuted)))
               : StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('pengajuan_izin').where('status_approval', isEqualTo: 'Menunggu').where('company_id', isEqualTo: _companyId).snapshots(),
+                  stream: FirebaseFirestore.instance.collection('pengajuan_izin').where('status_approval', whereIn: ['Menunggu', 'Menunggu Pembatalan']).where('company_id', isEqualTo: _companyId).snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: AppColors.blue));
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -285,6 +412,8 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                         final jenis = data['jenis_izin'] ?? 'Izin';
                         final tgl = data['tanggal_mulai'] ?? '-';
                         final ket = data['keterangan'] ?? '-';
+                        final statusApproval = data['status_approval'] ?? 'Menunggu';
+                        final isPembatalan = statusApproval == 'Menunggu Pembatalan';
                         final color = _izinColor(jenis);
                         final bg = _izinBg(jenis);
                         final adaFoto = data['bukti_url'] != null && data['bukti_url'].toString().isNotEmpty;
@@ -311,6 +440,10 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                                   const SizedBox(height: 4),
                                   Row(children: [
                                     Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)), child: Text(jenis, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: color))),
+                                    if (isPembatalan) ...[
+                                      const SizedBox(width: 6),
+                                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(6)), child: Text('Pembatalan', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.orange))),
+                                    ],
                                     const SizedBox(width: 8),
                                     Text(tgl, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted)),
                                   ]),

@@ -7,6 +7,7 @@ import 'main.dart';
 import 'absen_page.dart';
 import 'form_izin_page.dart';
 import 'history_page.dart';
+import 'notification_page.dart';
 import 'services/holiday_service.dart';
 import 'widgets/shared_widgets.dart';
 
@@ -70,7 +71,9 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   _buildGreeting(namaPanggilan, namaPerusahaan),
                   const SizedBox(height: 20),
-                  _buildCalendarCard(context),
+                  _buildCalendarCard(context, nrpSiswa),
+                  const SizedBox(height: 16),
+                  _buildActiveCuti(nrpSiswa, namaSiswa),
                   const SizedBox(height: 16),
                   _buildPengajuanCepat(context),
                   const SizedBox(height: 20),
@@ -89,6 +92,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildGreeting(String nama, String namaPerusahaan) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -115,46 +120,100 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.blue, Color(0xFF1D4ED8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.blue.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+        Row(
+          children: [
+            if (currentUser != null)
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('notifications')
+                    .where('uid', isEqualTo: currentUser.uid)
+                    .where('isRead', isEqualTo: false)
+                    .snapshots(),
+                builder: (context, snap) {
+                  final unreadCount = snap.data?.docs.length ?? 0;
+                  return GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationPage())),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary, size: 22),
+                          if (unreadCount > 0)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: AppColors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    unreadCount > 9 ? '9+' : '$unreadCount',
+                                    style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w800, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              nama.isNotEmpty ? nama[0].toUpperCase() : 'B',
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
+            const SizedBox(width: 10),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.blue, Color(0xFF1D4ED8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.blue.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  nama.isNotEmpty ? nama[0].toUpperCase() : 'B',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildCalendarCard(BuildContext context) {
+  Widget _buildCalendarCard(BuildContext context, String nrp) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppCardTitle(icon: Icons.calendar_today_rounded, title: 'Kalender Kehadiran'),
-          _buildCalendarGrid(context),
+          _buildCalendarGrid(context, nrp),
           const SizedBox(height: 14),
           _buildStatsRow(),
         ],
@@ -162,7 +221,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCalendarGrid(BuildContext context) {
+  DateTime? _parseDateIndo(String dateStr) {
+    try {
+      List<String> parts = dateStr.split('-');
+      if (parts.length == 3) {
+        if (parts[0].length == 2) {
+          return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+        }
+        return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Widget _buildCalendarGrid(BuildContext context, String nrp) {
     final now = DateTime.now();
     final holidayService = HolidayService('');
 
@@ -175,91 +247,305 @@ class _HomePageState extends State<HomePage> {
             .map((d) => d.day)
             .toSet();
 
-        return TableCalendar<dynamic>(
-          firstDay: DateTime(now.year, now.month - 3, 1),
-          lastDay: DateTime(now.year, now.month + 3, 0),
-          focusedDay: now,
-          availableGestures: AvailableGestures.horizontalSwipe,
-          headerStyle: HeaderStyle(
-            formatButtonVisible: false,
-            titleCentered: true,
-            titleTextStyle: GoogleFonts.inter(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-            leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: AppColors.textSecondary, size: 22),
-            rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 22),
-          ),
-          daysOfWeekStyle: DaysOfWeekStyle(
-            weekdayStyle: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
-            ),
-            weekendStyle: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
-            ),
-          ),
-          calendarStyle: CalendarStyle(
-            todayDecoration: BoxDecoration(
-              color: AppColors.blue,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.blue.withValues(alpha: 0.35),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            todayTextStyle: GoogleFonts.inter(
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-            defaultTextStyle: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-            weekendTextStyle: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-            outsideTextStyle: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted.withValues(alpha: 0.4),
-            ),
-          ),
-          calendarBuilders: CalendarBuilders(
-            defaultBuilder: (context, date, focusedDay) {
-              final isSunday = date.weekday == DateTime.sunday;
-              final isHoliday = date.month == now.month &&
-                  date.year == now.year &&
-                  holidayDays.contains(date.day);
+        return StreamBuilder<QuerySnapshot>(
+          stream: nrp.isNotEmpty
+              ? FirebaseFirestore.instance
+                  .collection('absensi')
+                  .where('nrp', isEqualTo: nrp)
+                  .snapshots()
+              : null,
+          builder: (context, absenSnap) {
+            return StreamBuilder<QuerySnapshot>(
+              stream: nrp.isNotEmpty
+                  ? FirebaseFirestore.instance
+                      .collection('pengajuan_izin')
+                      .where('nrp', isEqualTo: nrp)
+                      .where('status_approval', isEqualTo: 'Disetujui')
+                      .snapshots()
+                  : null,
+              builder: (context, pengajuanSnap) {
+                final Map<String, String> absensiMap = {};
 
-              if (isSunday || isHoliday) {
+                if (absenSnap.hasData) {
+                  for (final doc in absenSnap.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final status = (data['status'] ?? '').toString();
+                    final waktuAbsen = (data['waktu_absen'] ?? '').toString();
+                    try {
+                      String datePart = waktuAbsen.split(' ')[0];
+                      List<String> parts = datePart.split('-');
+                      if (parts.length == 3) {
+                        String key = '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
+                        absensiMap[key] = status;
+                      }
+                    } catch (_) {}
+                  }
+                }
+
+                if (pengajuanSnap.hasData) {
+                  for (final doc in pengajuanSnap.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final tglMulai = (data['tanggal_mulai'] ?? '').toString();
+                    final tglSelesai = (data['tanggal_selesai'] ?? tglMulai).toString();
+                    final jenis = (data['jenis_izin'] ?? '').toString();
+
+                    DateTime? start = _parseDateIndo(tglMulai);
+                    DateTime? end = _parseDateIndo(tglSelesai);
+                    if (start != null && end != null) {
+                      DateTime current = start;
+                      while (!current.isAfter(end)) {
+                        String key = '${current.year}-${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
+                        absensiMap[key] = jenis;
+                        current = current.add(const Duration(days: 1));
+                      }
+                    }
+                  }
+                }
+
+            return TableCalendar<dynamic>(
+              firstDay: DateTime(now.year, now.month - 3, 1),
+              lastDay: DateTime(now.year, now.month + 3, 0),
+              focusedDay: now,
+              availableGestures: AvailableGestures.horizontalSwipe,
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+                leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: AppColors.textSecondary, size: 22),
+                rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 22),
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekdayStyle: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+                weekendStyle: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              calendarStyle: CalendarStyle(
+                todayDecoration: BoxDecoration(
+                  color: AppColors.blue,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.blue.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                todayTextStyle: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+                defaultTextStyle: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+                weekendTextStyle: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+                outsideTextStyle: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted.withValues(alpha: 0.4),
+                ),
+              ),
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, date, focusedDay) {
+                  final isSunday = date.weekday == DateTime.sunday;
+                  final isHoliday = date.month == now.month &&
+                      date.year == now.year &&
+                      holidayDays.contains(date.day);
+
+                  String dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                  final absenStatus = absensiMap[dateKey];
+                  final isCutiIzin = absenStatus != null &&
+                      (absenStatus.toLowerCase().contains('cuti') || absenStatus.toLowerCase().contains('izin'));
+
+                  if (isCutiIzin) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${date.day}',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (isSunday || isHoliday) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                      child: Center(
+                        child: Text(
+                          '${date.day}',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.orange,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return null;
+                },
+              ),
+            );
+            },
+          );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _ajukanPembatalan(BuildContext context, String nrp, String nama, Map<String, dynamic> data) async {
+    final tglMulai = data['tanggal_mulai'] ?? '';
+    final tglSelesai = data['tanggal_selesai'] ?? tglMulai;
+    final tanggalRange = tglMulai == tglSelesai ? tglMulai : '$tglMulai s/d $tglSelesai';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Batalkan Cuti?', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17)),
+        content: Text('Ajukan pembatalan cuti untuk tanggal $tanggalRange? HRD akan meninjau permintaan ini.', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Tidak', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Ya, Batalkan', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red))),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final docId = data['_docId'] as String;
+      await FirebaseFirestore.instance.collection('pengajuan_izin').doc(docId).update({
+        'status_approval': 'Menunggu Pembatalan',
+      });
+
+      final userCompanyId = data['company_id'] ?? '';
+      QuerySnapshot hrSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'hr')
+          .where('company_id', isEqualTo: userCompanyId)
+          .get();
+
+      for (var hrDoc in hrSnapshot.docs) {
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'uid': hrDoc.id,
+          'title': 'Pengajuan Pembatalan Cuti',
+          'message': '$nama mengajukan pembatalan cuti untuk tanggal $tanggalRange.',
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Pengajuan pembatalan cuti berhasil dikirim.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: AppColors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Gagal mengajukan pembatalan.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: AppColors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    }
+  }
+
+  Widget _buildActiveCuti(String nrp, String nama) {
+    if (nrp.isEmpty) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('pengajuan_izin')
+          .where('nrp', isEqualTo: nrp)
+          .where('status_approval', isEqualTo: 'Disetujui')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
+
+        final cutiDocs = snapshot.data!.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final jenis = (data['jenis_izin'] ?? '').toString().toLowerCase();
+          return jenis.contains('cuti');
+        }).toList();
+
+        if (cutiDocs.isEmpty) return const SizedBox.shrink();
+
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppCardTitle(icon: Icons.event_busy_rounded, title: 'Cuti Aktif'),
+              ...cutiDocs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final tglMulai = data['tanggal_mulai'] ?? '-';
+                final tglSelesai = data['tanggal_selesai'] ?? tglMulai;
+                final tanggalRange = tglMulai == tglSelesai ? tglMulai : '$tglMulai → $tglSelesai';
+
                 return Container(
-                  margin: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-                  child: Center(
-                    child: Text(
-                      '${date.day}',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.orange,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.greenLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.green.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(children: [
+                    Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.calendar_month_rounded, color: AppColors.green, size: 18)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(tanggalRange, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                      const SizedBox(height: 2),
+                      Text('Disetujui', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.green)),
+                    ])),
+                    GestureDetector(
+                      onTap: () {
+                        final dataWithId = Map<String, dynamic>.from(data);
+                        dataWithId['_docId'] = doc.id;
+                        _ajukanPembatalan(context, nrp, nama, dataWithId);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(color: AppColors.redLight, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.red.withValues(alpha: 0.2))),
+                        child: Text('Batalkan', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.red)),
                       ),
                     ),
-                  ),
+                  ]),
                 );
-              }
-              return null;
-            },
+              }),
+            ],
           ),
         );
       },

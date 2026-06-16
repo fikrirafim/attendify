@@ -10,6 +10,7 @@ import 'absen_page.dart';
 import 'profile_page.dart';
 import 'karyawan_list_page.dart';
 import 'approval_izin_page.dart';
+import 'notification_page.dart';
 import 'setting_jam_page.dart';
 import 'setting_lokasi_page.dart';
 import 'today_attendance_page.dart';
@@ -90,8 +91,15 @@ class _HRDashboardState extends State<HRDashboard> {
   }
 }
 
-class _HRHomeTab extends StatelessWidget {
+class _HRHomeTab extends StatefulWidget {
   const _HRHomeTab();
+
+  @override
+  State<_HRHomeTab> createState() => _HRHomeTabState();
+}
+
+class _HRHomeTabState extends State<_HRHomeTab> {
+  bool _isResettingCuti = false;
 
   Future<DocumentSnapshot?> _loadCompanyForCurrentUser() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -102,6 +110,69 @@ class _HRHomeTab extends StatelessWidget {
     if (companyId == null) return null;
     final companyDoc = await FirebaseFirestore.instance.collection('companies').doc(companyId).get();
     return companyDoc;
+  }
+
+  Future<void> _resetCutiTahunan(String companyId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Reset Cuti Tahunan?', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17)),
+        content: Text('Tindakan ini akan mereset sisa cuti SELURUH karyawan menjadi 12 hari. Lanjutkan?', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Ya, Reset', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red))),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isResettingCuti = true);
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'karyawan')
+          .where('company_id', isEqualTo: companyId)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Tidak ada karyawan ditemukan.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+          backgroundColor: AppColors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+        setState(() => _isResettingCuti = false);
+        return;
+      }
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'sisa_cuti': 12});
+      }
+      await batch.commit();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Sisa cuti seluruh karyawan berhasil direset ke 12 hari.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: AppColors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Gagal mereset cuti. Silakan coba lagi.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+        backgroundColor: AppColors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    }
+
+    if (mounted) setState(() => _isResettingCuti = false);
   }
 
   @override
@@ -148,7 +219,7 @@ class _HRHomeTab extends StatelessWidget {
               const SizedBox(height: 20),
               AppSectionTitle(title: 'Menu Manajemen'),
               const SizedBox(height: 12),
-              _buildMenuList(context),
+              _buildMenuList(context, companyId: companyId),
             ]),
           );
         },
@@ -157,43 +228,97 @@ class _HRHomeTab extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, {String? companyName}) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Dashboard Admin', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.3)),
         const SizedBox(height: 3),
         Text(companyName ?? 'Universitas Jenderal Achmad Yani', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
       ]),
-      GestureDetector(
-        onTap: () async {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Konfirmasi Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17)),
-              content: Text('Apakah Anda yakin ingin keluar?', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red))),
-              ],
-            ),
-          );
-          if (confirm == true && context.mounted) {
-            await FirebaseAuth.instance.signOut();
-            if (!context.mounted) return;
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
-          }
-        },
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [AppColors.blue, Color(0xFF1D4ED8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+      Row(children: [
+        if (currentUser != null)
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('notifications')
+                .where('uid', isEqualTo: currentUser.uid)
+                .where('isRead', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snap) {
+              final unreadCount = snap.data?.docs.length ?? 0;
+              return GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationPage())),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(Icons.notifications_none_rounded, color: AppColors.textPrimary, size: 22),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: AppColors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 9 ? '9+' : '$unreadCount',
+                                style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w800, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-          child: const Center(child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 22)),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: Text('Konfirmasi Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17)),
+                content: Text('Apakah Anda yakin ingin keluar?', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red))),
+                ],
+              ),
+            );
+            if (confirm == true && context.mounted) {
+              await FirebaseAuth.instance.signOut();
+              if (!context.mounted) return;
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+            }
+          },
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [AppColors.blue, Color(0xFF1D4ED8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            child: const Center(child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 22)),
+          ),
         ),
-      ),
+      ]),
     ]);
   }
 
@@ -494,13 +619,17 @@ class _HRHomeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuList(BuildContext context) {
+  Widget _buildMenuList(BuildContext context, {String? companyId}) {
     return Container(decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))]), child: Column(children: [
       _buildMenuItem(context, icon: Icons.people_outline_rounded, iconBg: AppColors.blueLight, iconColor: AppColors.blue, title: 'Manajemen Karyawan', subtitle: 'Input data, rekap absen & edit profil', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const KaryawanListPage()))),
       const AppDivider(),
       _buildMenuItem(context, icon: Icons.description_outlined, iconBg: AppColors.orangeLight, iconColor: AppColors.orange, title: 'Rekapitulasi Kehadiran', subtitle: 'Lihat rekap absensi seluruh karyawan', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const KaryawanListPage()))),
       const AppDivider(),
       _buildMenuItem(context, icon: Icons.checklist_rounded, iconBg: AppColors.greenLight, iconColor: AppColors.green, title: 'Persetujuan Pengajuan', subtitle: 'Review pengajuan', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ApprovalIzinPage()))),
+      if (companyId != null) ...[
+        const AppDivider(),
+        _buildMenuItem(context, icon: Icons.restore_rounded, iconBg: AppColors.redLight, iconColor: AppColors.red, title: 'Reset Cuti Tahunan', subtitle: _isResettingCuti ? 'Mereset...' : 'Reset sisa cuti seluruh karyawan ke 12 hari', onTap: _isResettingCuti ? () {} : () => _resetCutiTahunan(companyId)),
+      ],
       const AppDivider(),
       _buildMenuItem(context, icon: Icons.access_time_rounded, iconBg: const Color(0xFFFFF7ED), iconColor: AppColors.orange, title: 'Pengaturan Jam Operasional', subtitle: 'Ubah batas waktu masuk dan pulang', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingJamPage()))),
       const AppDivider(),

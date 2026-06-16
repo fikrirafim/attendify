@@ -78,6 +78,7 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
         'role': 'karyawan',
         'company_id': companyId,
         'nama_perusahaan': namaPerusahaan,
+        'sisa_cuti': 12,
       });
 
       await FirebaseFirestore.instance.collection('nrp').doc(_nrpController.text.trim()).set({

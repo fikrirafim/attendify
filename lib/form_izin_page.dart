@@ -29,9 +29,6 @@ class _FormIzinPageState extends State<FormIzinPage> {
   XFile? _fotoBukti;
   bool _isLoading = false;
 
-  int _sisaCuti = 0;
-  bool _isLoadingData = true;
-
   static const List<String> _pilihanIzin = [
     'Izin',
     'Sakit',
@@ -53,38 +50,12 @@ class _FormIzinPageState extends State<FormIzinPage> {
     if (widget.initialJenisIzin != null && _pilihanIzin.contains(widget.initialJenisIzin)) {
       _jenisIzin = widget.initialJenisIzin!;
     }
-    _tarikDataSisaCuti();
   }
 
   @override
   void dispose() {
     _keteranganController.dispose();
     super.dispose();
-  }
-
-  Future<void> _tarikDataSisaCuti() async {
-    try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        var snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: currentUser.email)
-            .limit(1)
-            .get();
-        if (snap.docs.isNotEmpty) {
-          setState(() {
-            _sisaCuti = snap.docs.first.data()['sisa_cuti'] ?? 12;
-            _isLoadingData = false;
-          });
-        } else {
-          setState(() => _isLoadingData = false);
-        }
-      } else {
-        setState(() => _isLoadingData = false);
-      }
-    } catch (e) {
-      setState(() => _isLoadingData = false);
-    }
   }
 
   Future<void> _ambilFoto(ImageSource source) async {
@@ -247,16 +218,28 @@ class _FormIzinPageState extends State<FormIzinPage> {
     }
 
     if (_jenisIzin == 'Cuti') {
-      int lamaCutiDiminta =
-          _tanggalSelesai.difference(_tanggalMulai).inDays + 1;
-      if (lamaCutiDiminta > _sisaCuti) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Pengajuan $lamaCutiDiminta hari melebihi sisa cuti $_sisaCuti hari.'),
-          backgroundColor: const Color(0xFFDC2626),
-          duration: const Duration(seconds: 4),
-        ));
-        return;
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        var userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .get();
+        int sisaCuti = 12;
+        if (userDoc.exists) {
+          sisaCuti = (userDoc.data()?['sisa_cuti'] ?? 12) as int;
+        }
+        int lamaCutiDiminta =
+            _tanggalSelesai.difference(_tanggalMulai).inDays + 1;
+        if (lamaCutiDiminta > sisaCuti) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Pengajuan $lamaCutiDiminta hari melebihi sisa cuti $sisaCuti hari.'),
+            backgroundColor: const Color(0xFFDC2626),
+            duration: const Duration(seconds: 4),
+          ));
+          return;
+        }
       }
     }
 
@@ -308,6 +291,8 @@ class _FormIzinPageState extends State<FormIzinPage> {
       String formatJm(TimeOfDay jam) =>
           "${jam.hour.toString().padLeft(2, '0')}:${jam.minute.toString().padLeft(2, '0')}";
 
+      String userCompanyId = userData['company_id'] ?? '';
+
       await FirebaseFirestore.instance.collection('pengajuan_izin').add({
         'nrp': nrpSiswa,
         'nama': namaSiswa,
@@ -321,8 +306,31 @@ class _FormIzinPageState extends State<FormIzinPage> {
         'bukti_url': downloadUrl,
         'status_approval': 'Menunggu',
         'created_at': FieldValue.serverTimestamp(),
-        'company_id': userData['company_id'] ?? '',
+        'company_id': userCompanyId,
       });
+
+      try {
+        String tanggalDisplay = formatTgl(_tanggalMulai);
+        if (!_isSkenarioB && !_isLembur && formatTgl(_tanggalSelesai) != formatTgl(_tanggalMulai)) {
+          tanggalDisplay += ' s/d ${formatTgl(_tanggalSelesai)}';
+        }
+
+        QuerySnapshot hrSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('role', isEqualTo: 'hr')
+            .where('company_id', isEqualTo: userCompanyId)
+            .get();
+
+        for (var hrDoc in hrSnapshot.docs) {
+          await FirebaseFirestore.instance.collection('notifications').add({
+            'uid': hrDoc.id,
+            'title': 'Pengajuan $_jenisIzin Baru',
+            'message': '$namaSiswa mengajukan $_jenisIzin untuk tanggal $tanggalDisplay. Silakan cek di daftar persetujuan.',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -369,7 +377,7 @@ class _FormIzinPageState extends State<FormIzinPage> {
           ),
         ),
       ),
-      body: _isLoading || _isLoadingData
+      body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.blue))
           : SingleChildScrollView(
@@ -552,52 +560,69 @@ class _FormIzinPageState extends State<FormIzinPage> {
   }
 
   Widget _buildCutiBanner() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFED7AA)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEDD5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.info_outline_rounded,
-                color: Color(0xFFEA580C), size: 22),
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return const SizedBox.shrink();
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        int sisaCuti = 12;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          sisaCuti = data?['sisa_cuti'] ?? 12;
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7ED),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFED7AA)),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Sisa Cuti Tahunan: $_sisaCuti Hari',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF9A3412),
-                    fontSize: 14,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEDD5),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Pastikan rentang tanggal tidak melebihi sisa cuti.',
-                  style: TextStyle(
-                    color: Color(0xFFC2410C),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: const Icon(Icons.info_outline_rounded,
+                    color: Color(0xFFEA580C), size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sisa Cuti Tahunan: $sisaCuti Hari',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF9A3412),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Pastikan rentang tanggal tidak melebihi sisa cuti.',
+                      style: TextStyle(
+                        color: Color(0xFFC2410C),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
