@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'main.dart';
@@ -51,7 +52,27 @@ class _HRDashboardState extends State<HRDashboard> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeIn,
+        switchOutCurve: Curves.easeOut,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.05),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey(_selectedIndex),
+          child: _pages[_selectedIndex],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.92),
@@ -191,11 +212,22 @@ class _HRHomeTabState extends State<_HRHomeTab> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _buildEmptyCompanyState(context),
+                Animate(
+                  effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                  child: _buildEmptyCompanyState(context),
+                ),
                 const SizedBox(height: 20),
-                AppSectionTitle(title: 'Menu Manajemen'),
+                Animate(
+                  delay: const Duration(milliseconds: 150),
+                  effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                  child: AppSectionTitle(title: 'Menu Manajemen'),
+                ),
                 const SizedBox(height: 12),
-                _buildMenuList(context),
+                Animate(
+                  delay: const Duration(milliseconds: 300),
+                  effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                  child: _buildMenuList(context),
+                ),
               ]),
             );
           }
@@ -207,19 +239,46 @@ class _HRHomeTabState extends State<_HRHomeTab> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildHeader(context, companyName: companyName),
+              Animate(
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: _buildHeader(context, companyName: companyName),
+              ),
               const SizedBox(height: 20),
-              _buildStatistikHariIni(companyId),
+              Animate(
+                delay: const Duration(milliseconds: 150),
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: _buildStatistikHariIni(companyId),
+              ),
               const SizedBox(height: 16),
-              _buildChartStatistik(companyId),
+              Animate(
+                delay: const Duration(milliseconds: 300),
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: _buildChartStatistik(companyId),
+              ),
               const SizedBox(height: 20),
-              _buildKehadiranHariIni(context, companyId),
+              Animate(
+                delay: const Duration(milliseconds: 450),
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: _buildKehadiranHariIni(context, companyId),
+              ),
               const SizedBox(height: 20),
-              _buildTotalKaryawan(companyId),
+              Animate(
+                delay: const Duration(milliseconds: 600),
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: _buildTotalKaryawan(companyId),
+              ),
               const SizedBox(height: 20),
-              AppSectionTitle(title: 'Menu Manajemen'),
+              Animate(
+                delay: const Duration(milliseconds: 750),
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: AppSectionTitle(title: 'Menu Manajemen'),
+              ),
               const SizedBox(height: 12),
-              _buildMenuList(context, companyId: companyId),
+              Animate(
+                delay: const Duration(milliseconds: 900),
+                effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                child: _buildMenuList(context, companyId: companyId),
+              ),
             ]),
           );
         },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'main.dart';
 import 'utils/app_utils.dart';
@@ -291,7 +292,7 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                       height: 180,
                       width: screenWidth,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, a, b) => Container(
                         width: screenWidth,
                         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                         decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
@@ -380,13 +381,13 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
         bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(height: 1, color: AppColors.border)),
       ),
       body: _isLoadingCompany
-          ? const Center(child: CircularProgressIndicator(color: AppColors.blue))
+          ? _buildShimmerList()
           : _companyId == null
               ? Center(child: Text('Gagal memuat data perusahaan.', style: GoogleFonts.inter(color: AppColors.textMuted)))
               : StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('pengajuan_izin').where('status_approval', whereIn: ['Menunggu', 'Menunggu Pembatalan']).where('company_id', isEqualTo: _companyId).snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: AppColors.blue));
+                    if (snapshot.connectionState == ConnectionState.waiting) return _buildShimmerList();
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(child: Padding(
                         padding: const EdgeInsets.all(40),
@@ -464,6 +465,50 @@ class _ApprovalIzinPageState extends State<ApprovalIzinPage> {
                     );
                   },
                 ),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        itemCount: 4,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(width: 120, height: 14, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Container(width: 60, height: 18, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+                    const SizedBox(width: 8),
+                    Container(width: 70, height: 11, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                  ]),
+                  const SizedBox(height: 8),
+                  Container(width: double.infinity, height: 11, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              Container(width: 64, height: 32, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10))),
+            ]),
+          );
+        },
+      ),
     );
   }
 }

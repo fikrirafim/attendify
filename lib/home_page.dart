@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'main.dart';
 import 'absen_page.dart';
@@ -47,7 +49,7 @@ class _HomePageState extends State<HomePage> {
             .get(),
         builder: (context, userSnap) {
           if (userSnap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.blue));
+            return _buildShimmerPage();
           }
 
           String namaSiswa = 'Karyawan';
@@ -69,19 +71,46 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildGreeting(namaPanggilan, namaPerusahaan),
+                  Animate(
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: _buildGreeting(namaPanggilan, namaPerusahaan),
+                  ),
                   const SizedBox(height: 20),
-                  _buildCalendarCard(context, nrpSiswa),
+                  Animate(
+                    delay: const Duration(milliseconds: 150),
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: _buildCalendarCard(context, nrpSiswa),
+                  ),
                   const SizedBox(height: 16),
-                  _buildActiveCuti(nrpSiswa, namaSiswa),
+                  Animate(
+                    delay: const Duration(milliseconds: 300),
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: _buildActiveCuti(nrpSiswa, namaSiswa),
+                  ),
                   const SizedBox(height: 16),
-                  _buildPengajuanCepat(context),
+                  Animate(
+                    delay: const Duration(milliseconds: 450),
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: _buildPengajuanCepat(context),
+                  ),
                   const SizedBox(height: 20),
-                  AppSectionTitle(title: 'Aksi Cepat'),
+                  Animate(
+                    delay: const Duration(milliseconds: 600),
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: AppSectionTitle(title: 'Aksi Cepat'),
+                  ),
                   const SizedBox(height: 12),
-                  _buildQuickActions(context),
+                  Animate(
+                    delay: const Duration(milliseconds: 750),
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: _buildQuickActions(context),
+                  ),
                   const SizedBox(height: 20),
-                  _buildRecentActivity(nrpSiswa),
+                  Animate(
+                    delay: const Duration(milliseconds: 900),
+                    effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
+                    child: _buildRecentActivity(nrpSiswa),
+                  ),
                 ],
               ),
             ),
@@ -915,10 +944,7 @@ class _HomePageState extends State<HomePage> {
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(child: CircularProgressIndicator(color: AppColors.blue, strokeWidth: 2)),
-                );
+                return _buildShimmerActivityList();
               }
 
               var docs = snapshot.data?.docs ?? [];
@@ -1012,6 +1038,146 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerPage() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildShimmerGreeting(),
+            const SizedBox(height: 20),
+            _buildShimmerCalendarCard(),
+            const SizedBox(height: 16),
+            _buildShimmerActionCard(),
+            const SizedBox(height: 20),
+            _buildShimmerActionCard(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerGreeting() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(width: 160, height: 22, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+              const SizedBox(height: 8),
+              Container(width: 100, height: 14, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            ],
+          ),
+          Row(children: [
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14))),
+            const SizedBox(width: 10),
+            Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14))),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerCalendarCard() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 140, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            const SizedBox(height: 16),
+            ...List.generate(5, (_) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: List.generate(7, (_) => Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    height: 32,
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                  ),
+                )),
+              ),
+            )),
+            const SizedBox(height: 14),
+            Row(children: [
+              Expanded(child: Container(height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(width: 10),
+              Expanded(child: Container(height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerActionCard() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 120, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            const SizedBox(height: 14),
+            Container(width: double.infinity, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerActivityList() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        children: List.generate(3, (_) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 160, height: 13, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                  ],
+                ),
+              ),
+              Container(width: 40, height: 13, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+            ],
+          ),
+        )),
       ),
     );
   }

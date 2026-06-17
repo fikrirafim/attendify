@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:convert';
 import 'utils/app_utils.dart';
 
@@ -266,12 +267,23 @@ class _FormIzinPageState extends State<FormIzinPage> {
       String downloadUrl = "";
       if (_fotoBukti != null) {
         try {
-          final bytes = await _fotoBukti!.readAsBytes();
+          final filePath = _fotoBukti!.path;
+          final compressedBytes = await FlutterImageCompress.compressWithFile(
+            filePath,
+            quality: 70,
+            minWidth: 1024,
+            minHeight: 1024,
+          );
+
+          if (compressedBytes == null) {
+            throw Exception("Kompresi gambar gagal");
+          }
+
           String imgbbApiKey = dotenv.env['IMGBB_API_KEY'] ?? '';
 
           var request = http.MultipartRequest('POST',
               Uri.parse('https://api.imgbb.com/1/upload?key=$imgbbApiKey'));
-          request.files.add(http.MultipartFile.fromBytes('image', bytes,
+          request.files.add(http.MultipartFile.fromBytes('image', compressedBytes,
               filename: 'bukti_izin.jpg'));
 
           var response = await request.send();
@@ -599,12 +611,20 @@ class _FormIzinPageState extends State<FormIzinPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Sisa Cuti Tahunan: $sisaCuti Hari',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF9A3412),
-                        fontSize: 14,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      ),
+                      child: Text(
+                        'Sisa Cuti Tahunan: $sisaCuti Hari',
+                        key: ValueKey(sisaCuti),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF9A3412),
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 3),
