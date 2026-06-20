@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'main.dart';
+import 'approval_izin_page.dart';
 
 class NotificationPage extends StatelessWidget {
   const NotificationPage({super.key});
@@ -99,6 +100,14 @@ class NotificationPage extends StatelessWidget {
                       onTap: () {
                         if (!isRead) {
                           FirebaseFirestore.instance.collection('notifications').doc(docId).update({'isRead': true});
+                        }
+
+                        final String titleLower = title.toString().toLowerCase();
+
+                        if (titleLower.contains('pengajuan') || titleLower.contains('pembatalan')) {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const ApprovalIzinPage()));
+                        } else if (titleLower.contains('disetujui') || titleLower.contains('ditolak')) {
+                          Navigator.pop(context);
                         }
                       },
                       child: Container(

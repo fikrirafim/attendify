@@ -43,8 +43,28 @@ class _ManageEmployeePageState extends State<ManageEmployeePage> {
 
     if (!_formKey.currentState!.validate()) return;
 
+    final inputNrp = _nrpController.text.trim();
+
     setState(() => _isLoading = true);
     try {
+      final checkNrp = await FirebaseFirestore.instance
+          .collection('users')
+          .where('nrp', isEqualTo: inputNrp)
+          .limit(1)
+          .get();
+
+      if (checkNrp.docs.isNotEmpty) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Gagal: NRP $inputNrp sudah terdaftar pada sistem! Silakan gunakan NRP lain.', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500)),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+        return;
+      }
+
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception('HR belum login');
 

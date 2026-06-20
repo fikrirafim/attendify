@@ -72,6 +72,10 @@
 	<string>Aplikasi ini memerlukan akses lokasi untuk melakukan verifikasi absensi berdasarkan posisi Anda.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Aplikasi ini membutuhkan akses lokasi untuk fitur lokasi latar belakang (opsional) saat verifikasi absensi.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses galeri untuk mengunggah foto profil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi ini memerlukan akses kamera untuk mengambil foto profil.</string>
 
 </dict>
 </plist>

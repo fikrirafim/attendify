@@ -346,36 +346,52 @@ class _HRHomeTabState extends State<_HRHomeTab> {
             },
           ),
         const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                title: Text('Konfirmasi Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17)),
-                content: Text('Apakah Anda yakin ingin keluar?', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
-                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red))),
-                ],
+        FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('users').doc(currentUser?.uid).get(),
+          builder: (context, userSnap) {
+            final photoUrl = (userSnap.hasData && userSnap.data!.exists)
+                ? ((userSnap.data!.data() as Map<String, dynamic>?)?['photoUrl'] ?? '').toString()
+                : '';
+            return GestureDetector(
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Text('Konfirmasi Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 17)),
+                    content: Text('Apakah Anda yakin ingin keluar?', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSecondary)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Batal', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Logout', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.red))),
+                    ],
+                  ),
+                );
+                if (confirm == true && context.mounted) {
+                  await FirebaseAuth.instance.signOut();
+                  if (!context.mounted) return;
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                }
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: photoUrl.isNotEmpty ? AppColors.blueLight : null,
+                  gradient: photoUrl.isEmpty
+                      ? const LinearGradient(colors: [AppColors.blue, Color(0xFF1D4ED8)], begin: Alignment.topLeft, end: Alignment.bottomRight)
+                      : null,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                  image: photoUrl.isNotEmpty
+                      ? DecorationImage(image: NetworkImage(photoUrl), fit: BoxFit.cover)
+                      : null,
+                ),
+                child: photoUrl.isEmpty
+                    ? const Center(child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 22))
+                    : null,
               ),
             );
-            if (confirm == true && context.mounted) {
-              await FirebaseAuth.instance.signOut();
-              if (!context.mounted) return;
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
-            }
           },
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.blue, Color(0xFF1D4ED8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
-            ),
-            child: const Center(child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 22)),
-          ),
         ),
       ]),
     ]);

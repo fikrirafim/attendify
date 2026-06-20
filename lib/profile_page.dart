@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'main.dart';
 import 'login_page.dart';
 import 'history_page.dart';
@@ -15,6 +19,8 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  String? _photoUrl;
+
   void _handleChangePassword() {
     final passwordLamaController = TextEditingController();
     final passwordBaruController = TextEditingController();
@@ -231,6 +237,215 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Future<String?> _uploadToCloudinary(String filePath) async {
+    try {
+      final url = Uri.parse('https://api.cloudinary.com/v1_1/dph0p4jfc/image/upload');
+      final request = http.MultipartRequest('POST', url);
+
+      request.fields['upload_preset'] = 'attendify_preset';
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final jsonMap = json.decode(responseData);
+        return jsonMap['secure_url'];
+      } else {
+        debugPrint('CLOUDINARY API ERROR: ${response.statusCode}');
+        debugPrint('CLOUDINARY RESPONSE: $responseData');
+        throw Exception('Upload ditolak Cloudinary: $responseData');
+      }
+    } catch (e) {
+      debugPrint('EXCEPTION UPLOAD: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _pickAndUploadProfilePic() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  margin: const EdgeInsets.only(top: 12, bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Ubah Foto Profil',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildImageSourceOption(
+                  icon: Icons.camera_alt_outlined,
+                  label: 'Ambil dari Kamera',
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                _buildImageSourceOption(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Pilih dari Galeri',
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                SizedBox(height: MediaQuery.of(ctx).padding.bottom + 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppColors.blue),
+                SizedBox(height: 16),
+                Text('Mengunggah foto...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) throw Exception('User tidak ditemukan');
+
+      final compressedFile = await FlutterImageCompress.compressAndGetFile(
+        pickedFile.path,
+        '${pickedFile.path}_compressed.jpg',
+        minWidth: 500,
+        minHeight: 500,
+        quality: 70,
+      );
+
+      if (compressedFile == null) throw Exception('Gagal mengompres gambar');
+
+      final secureUrl = await _uploadToCloudinary(compressedFile.path);
+      if (secureUrl == null) throw Exception('Gagal mendapatkan URL foto');
+
+      final userQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUser.email)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        await userQuery.docs.first.reference.update({'photoUrl': secureUrl});
+      }
+
+      setState(() => _photoUrl = secureUrl);
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Foto profil berhasil diperbarui!',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal mengunggah foto. Silakan coba lagi.',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: AppColors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  Widget _buildImageSourceOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.blueLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.blue, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? currentUser = FirebaseAuth.instance.currentUser;
@@ -272,6 +487,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 String email = currentUser.email ?? '-';
                 String namaPerusahaan = userData['nama_perusahaan'] ?? 'Attendify User';
                 String divisi = role == 'hr' ? 'Human Resource' : (userData['divisi'] ?? '-');
+                String photoUrl = _photoUrl ?? (userData['photoUrl'] ?? '');
 
                 return SafeArea(
                   child: SingleChildScrollView(
@@ -280,7 +496,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildProfileHeader(nama, role, namaPerusahaan),
+                        _buildProfileHeader(nama, role, namaPerusahaan, photoUrl),
                         const SizedBox(height: 20),
                         _buildInfoGrid(nrp, email, divisi),
                         const SizedBox(height: 16),
@@ -309,7 +525,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader(String nama, String role, String namaPerusahaan) {
+  Widget _buildProfileHeader(String nama, String role, String namaPerusahaan, String photoUrl) {
     String initials = nama.isNotEmpty
         ? nama.split('').take(2).join().toUpperCase()
         : 'BP';
@@ -317,33 +533,76 @@ class _ProfilePageState extends State<ProfilePage> {
     return Center(
       child: Column(
         children: [
-          Container(
-            width: 86,
-            height: 86,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.blue, Color(0xFF7C3AED)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(26),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.blue.withValues(alpha: 0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+          GestureDetector(
+            onTap: _pickAndUploadProfilePic,
+            child: Stack(
+              children: [
+                Container(
+                  width: 86,
+                  height: 86,
+                  decoration: BoxDecoration(
+                    color: photoUrl.isNotEmpty ? AppColors.blueLight : null,
+                    gradient: photoUrl.isEmpty
+                        ? const LinearGradient(
+                            colors: [AppColors.blue, Color(0xFF7C3AED)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.blue.withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    image: photoUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(photoUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: photoUrl.isEmpty
+                      ? Center(
+                          child: Text(
+                            initials,
+                            style: GoogleFonts.inter(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.blue,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 15,
+                    ),
+                  ),
                 ),
               ],
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: GoogleFonts.inter(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
             ),
           ),
           const SizedBox(height: 14),

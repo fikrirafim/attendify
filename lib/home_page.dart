@@ -21,15 +21,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _selectedPengajuan = '';
+  bool _isCalendarExpanded = false;
 
-  static const List<String> _pilihanPengajuan = [
-    'Izin',
-    'Sakit',
-    'Cuti',
-    'Izin Pulang Cepat',
-    'Izin Masuk Terlambat',
-    'Lembur',
+  static const List<String> _monthNames = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   @override
@@ -55,11 +51,13 @@ class _HomePageState extends State<HomePage> {
           String namaSiswa = 'Karyawan';
           String nrpSiswa = '';
           String namaPerusahaan = 'Attendify User';
+          String photoUrl = '';
           if (userSnap.hasData && userSnap.data!.docs.isNotEmpty) {
             var userData = userSnap.data!.docs.first.data() as Map<String, dynamic>;
             namaSiswa = userData['nama'] ?? userData['nama_hr'] ?? 'Karyawan';
             nrpSiswa = userData['nrp'] ?? '';
             namaPerusahaan = userData['nama_perusahaan'] ?? 'Attendify User';
+            photoUrl = (userData['photoUrl'] ?? '').toString();
           }
 
           String namaPanggilan = namaSiswa.split(' ').first;
@@ -73,25 +71,25 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Animate(
                     effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
-                    child: _buildGreeting(namaPanggilan, namaPerusahaan),
+                    child: _buildGreeting(namaPanggilan, namaPerusahaan, photoUrl),
                   ),
                   const SizedBox(height: 20),
                   Animate(
                     delay: const Duration(milliseconds: 150),
                     effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
-                    child: _buildCalendarCard(context, nrpSiswa),
+                    child: _buildQuickPengajuanMenu(context),
                   ),
                   const SizedBox(height: 16),
                   Animate(
                     delay: const Duration(milliseconds: 300),
                     effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
-                    child: _buildActiveCuti(nrpSiswa, namaSiswa),
+                    child: _buildCollapsibleCalendar(context, nrpSiswa),
                   ),
                   const SizedBox(height: 16),
                   Animate(
                     delay: const Duration(milliseconds: 450),
                     effects: const [FadeEffect(duration: Duration(milliseconds: 400)), SlideEffect(begin: Offset(0, 0.1), end: Offset.zero)],
-                    child: _buildPengajuanCepat(context),
+                    child: _buildActiveCuti(nrpSiswa, namaSiswa),
                   ),
                   const SizedBox(height: 20),
                   Animate(
@@ -120,7 +118,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildGreeting(String nama, String namaPerusahaan) {
+  Widget _buildGreeting(String nama, String namaPerusahaan, String photoUrl) {
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return Row(
@@ -205,11 +203,14 @@ class _HomePageState extends State<HomePage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.blue, Color(0xFF1D4ED8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: photoUrl.isNotEmpty ? AppColors.blueLight : null,
+                gradient: photoUrl.isEmpty
+                    ? const LinearGradient(
+                        colors: [AppColors.blue, Color(0xFF1D4ED8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
@@ -218,17 +219,25 @@ class _HomePageState extends State<HomePage> {
                     offset: const Offset(0, 2),
                   ),
                 ],
+                image: photoUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(photoUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Center(
-                child: Text(
-                  nama.isNotEmpty ? nama[0].toUpperCase() : 'B',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              child: photoUrl.isEmpty
+                  ? Center(
+                      child: Text(
+                        nama.isNotEmpty ? nama[0].toUpperCase() : 'B',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
@@ -236,15 +245,162 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCalendarCard(BuildContext context, String nrp) {
-    return AppCard(
+  Widget _buildQuickPengajuanMenu(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildPengajuanItem(
+          context: context,
+          icon: Icons.medical_services_outlined,
+          label: 'Sakit',
+          color: const Color(0xFFDC2626),
+          bgColor: const Color(0xFFFEF2F2),
+        ),
+        _buildPengajuanItem(
+          context: context,
+          icon: Icons.flight_takeoff_outlined,
+          label: 'Cuti',
+          color: const Color(0xFF2563EB),
+          bgColor: const Color(0xFFEFF6FF),
+        ),
+        _buildPengajuanItem(
+          context: context,
+          icon: Icons.access_time_outlined,
+          label: 'Izin',
+          color: const Color(0xFFEA580C),
+          bgColor: const Color(0xFFFFF7ED),
+        ),
+        _buildPengajuanItem(
+          context: context,
+          icon: Icons.work_history_outlined,
+          label: 'Lembur',
+          color: const Color(0xFF7C3AED),
+          bgColor: const Color(0xFFF5F3FF),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPengajuanItem({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => FormIzinPage(initialJenisIzin: label)),
+      ),
+      borderRadius: BorderRadius.circular(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          AppCardTitle(icon: Icons.calendar_today_rounded, title: 'Kalender Kehadiran'),
-          _buildCalendarGrid(context, nrp),
-          const SizedBox(height: 14),
-          _buildStatsRow(),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsibleCalendar(BuildContext context, String nrp) {
+    final now = DateTime.now();
+    final monthName = '${_monthNames[now.month]} ${now.year}';
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isCalendarExpanded = !_isCalendarExpanded),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.blueLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.calendar_month_rounded, color: AppColors.blue, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Kalender Kehadiran',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          monthName,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _isCalendarExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary, size: 24),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedAlign(
+              alignment: Alignment.topCenter,
+              heightFactor: _isCalendarExpanded ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOut,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 1,
+                      color: AppColors.borderLight,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildCalendarGrid(context, nrp),
+                    const SizedBox(height: 14),
+                    _buildStatsRow(),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -687,166 +843,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showJenisPengajuanSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Pilih Jenis Pengajuan',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...List.generate(_pilihanPengajuan.length, (i) {
-                final item = _pilihanPengajuan[i];
-                final isSelected = item == _selectedPengajuan;
-                return Column(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        setState(() => _selectedPengajuan = item);
-                        Navigator.pop(ctx);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item,
-                                style: GoogleFonts.inter(
-                                  fontSize: 15,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                  color: isSelected ? AppColors.blue : AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            if (isSelected)
-                              const Icon(Icons.check_rounded, color: AppColors.blue, size: 22),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (i < _pilihanPengajuan.length - 1)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Container(height: 1, color: AppColors.borderLight),
-                      ),
-                  ],
-                );
-              }),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPengajuanCepat(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppCardTitle(icon: Icons.description_outlined, title: 'Pengajuan Cepat'),
-          GestureDetector(
-            onTap: _showJenisPengajuanSheet,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selectedPengajuan.isEmpty
-                          ? 'Pilih jenis pengajuan...'
-                          : _selectedPengajuan,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: _selectedPengajuan.isEmpty
-                            ? FontWeight.w500
-                            : FontWeight.w600,
-                        color: _selectedPengajuan.isEmpty
-                            ? AppColors.textMuted
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.textSecondary, size: 22),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {
-                if (_selectedPengajuan.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Pilih jenis pengajuan terlebih dahulu.'),
-                    backgroundColor: AppColors.red,
-                  ));
-                  return;
-                }
-                Navigator.push(context, MaterialPageRoute(builder: (context) => FormIzinPage(initialJenisIzin: _selectedPengajuan)));
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.blue,
-                elevation: 2,
-                shadowColor: AppColors.blue.withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(
-                'Ajukan Sekarang',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildQuickActions(BuildContext context) {
     return Row(
       children: [
@@ -1052,6 +1048,8 @@ class _HomePageState extends State<HomePage> {
           children: [
             _buildShimmerGreeting(),
             const SizedBox(height: 20),
+            _buildShimmerQuickPengajuan(),
+            const SizedBox(height: 16),
             _buildShimmerCalendarCard(),
             const SizedBox(height: 16),
             _buildShimmerActionCard(),
@@ -1094,36 +1092,54 @@ class _HomePageState extends State<HomePage> {
       highlightColor: Colors.grey[100]!,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Container(width: 140, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
-            const SizedBox(height: 16),
-            ...List.generate(5, (_) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: List.generate(7, (_) => Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    height: 32,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                  ),
-                )),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(width: 140, height: 14, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+                  const SizedBox(height: 6),
+                  Container(width: 90, height: 12, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+                ],
               ),
-            )),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(child: Container(height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
-              const SizedBox(width: 10),
-              Expanded(child: Container(height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
-            ]),
+            ),
+            Container(width: 24, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerQuickPengajuan() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(4, (_) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            ),
+            const SizedBox(height: 8),
+            Container(width: 40, height: 12, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+          ],
+        )),
       ),
     );
   }
