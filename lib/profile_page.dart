@@ -712,6 +712,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildStatCard(String nrp) {
+    final String currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -748,50 +750,81 @@ class _ProfilePageState extends State<ProfilePage> {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('absensi')
-                .where('nrp', isEqualTo: nrp)
+                .where('uid', isEqualTo: currentUid)
                 .snapshots(),
-            builder: (context, snapshot) {
-              int totalHadir = 0;
-              int totalTerlambat = 0;
-              int totalIzin = 0;
+            builder: (context, absenSnapshot) {
+              return StreamBuilder<QuerySnapshot>(
+                stream: nrp.isNotEmpty
+                    ? FirebaseFirestore.instance
+                        .collection('pengajuan_izin')
+                        .where('nrp', isEqualTo: nrp)
+                        .where('status_approval', isEqualTo: 'Disetujui')
+                        .snapshots()
+                    : null,
+                builder: (context, izinSnapshot) {
+                  int totalHadir = 0;
+                  int totalTerlambat = 0;
+                  int totalIzin = 0;
+                  final now = DateTime.now();
 
-              if (snapshot.hasData) {
-                for (var doc in snapshot.data!.docs) {
-                  Map<String, dynamic> dataAbsen = doc.data() as Map<String, dynamic>;
-                  String status = dataAbsen['status'] ?? '';
-                  String waktuAbsen = dataAbsen['waktu_absen'] ?? '';
+                  if (absenSnapshot.hasData) {
+                    for (var doc in absenSnapshot.data!.docs) {
+                      Map<String, dynamic> dataAbsen = doc.data() as Map<String, dynamic>;
+                      String status = (dataAbsen['status'] ?? '').toString().toLowerCase();
+                      String waktuAbsen = (dataAbsen['waktu_absen'] ?? '').toString();
 
-                  try {
-                    List<String> splitSpasi = waktuAbsen.split(' ');
-                    if (splitSpasi.isNotEmpty) {
-                      List<String> splitStrip = splitSpasi[0].split('-');
-                      if (splitStrip.length == 3) {
-                        int docBulan = int.parse(splitStrip[1]);
-                        int docTahun = int.parse(splitStrip[2]);
+                      try {
+                        List<String> splitSpasi = waktuAbsen.split(' ');
+                        if (splitSpasi.isNotEmpty) {
+                          List<String> splitStrip = splitSpasi[0].split('-');
+                          if (splitStrip.length == 3) {
+                            int docBulan = int.parse(splitStrip[1]);
+                            int docTahun = int.parse(splitStrip[2]);
 
-                        if (docBulan == DateTime.now().month && docTahun == DateTime.now().year) {
-                          if (status.toLowerCase().contains('tepat')) {
-                            totalHadir++;
-                          } else if (status.toLowerCase().contains('telat') ||
-                              status.toLowerCase().contains('terlambat')) {
-                            totalHadir++;
-                            totalTerlambat++;
+                            if (docBulan == now.month && docTahun == now.year) {
+                              if (status.contains('tepat')) {
+                                totalHadir++;
+                              } else if (status.contains('telat') ||
+                                  status.contains('terlambat')) {
+                                totalHadir++;
+                                totalTerlambat++;
+                              }
+                            }
                           }
                         }
-                      }
+                      } catch (_) {}
                     }
-                  } catch (_) {}
-                }
-              }
+                  }
 
-              return Row(
-                children: [
-                  _buildStatCell(AppColors.green, AppColors.greenLight, '$totalHadir', 'Hadir'),
-                  const SizedBox(width: 10),
-                  _buildStatCell(AppColors.orange, AppColors.orangeLight, '$totalTerlambat', 'Terlambat'),
-                  const SizedBox(width: 10),
-                  _buildStatCell(AppColors.blue, AppColors.blueLight, '$totalIzin', 'Izin'),
-                ],
+                  if (izinSnapshot.hasData) {
+                    for (var doc in izinSnapshot.data!.docs) {
+                      Map<String, dynamic> dataIzin = doc.data() as Map<String, dynamic>;
+                      String tglMulai = (dataIzin['tanggal_mulai'] ?? '').toString();
+
+                      try {
+                        List<String> parts = tglMulai.split('-');
+                        if (parts.length == 3) {
+                          int docBulan = int.parse(parts[1]);
+                          int docTahun = int.parse(parts[2]);
+
+                          if (docBulan == now.month && docTahun == now.year) {
+                            totalIzin++;
+                          }
+                        }
+                      } catch (_) {}
+                    }
+                  }
+
+                  return Row(
+                    children: [
+                      _buildStatCell(AppColors.green, AppColors.greenLight, '$totalHadir', 'Hadir'),
+                      const SizedBox(width: 10),
+                      _buildStatCell(AppColors.orange, AppColors.orangeLight, '$totalTerlambat', 'Terlambat'),
+                      const SizedBox(width: 10),
+                      _buildStatCell(AppColors.blue, AppColors.blueLight, '$totalIzin', 'Izin'),
+                    ],
+                  );
+                },
               );
             },
           ),
